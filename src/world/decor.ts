@@ -35,7 +35,7 @@ const M = (() => {
     blossom: new THREE.MeshStandardMaterial({ color: '#ffc2dc', roughness: 0.9, flatShading: true }),
     bark: new THREE.MeshStandardMaterial({ color: '#a77e5a', roughness: 1, flatShading: true }),
     water: new THREE.MeshStandardMaterial({ color: '#9ad8ff', roughness: 0.1, metalness: 0.2, emissive: '#4aa8ff', emissiveIntensity: 0.4 }),
-    bridge: new THREE.MeshStandardMaterial({ map: bridge, roughness: 0.2, metalness: 0.1, emissive: '#8ab8ff', emissiveIntensity: 0.25 }),
+    bridge: new THREE.MeshStandardMaterial({ map: bridge, color: '#c4d2ee', roughness: 0.3, metalness: 0.1, emissive: '#6a90d8', emissiveIntensity: 0.15 }),
     crystal: new THREE.MeshStandardMaterial({ color: '#cfe6ff', roughness: 0.1, emissive: '#7ab0ff', emissiveIntensity: 0.9, transparent: true, opacity: 0.9 }),
     islandRock: new THREE.MeshStandardMaterial({ color: '#9a8aa8', roughness: 1, flatShading: true }),
     goldTiles: new THREE.MeshStandardMaterial({ map: gold, roughness: 0.3, metalness: 0.7, emissive: '#5a3a00', emissiveIntensity: 0.25 }),
