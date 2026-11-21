@@ -8,7 +8,7 @@ Add `?stage=` to the play link to start right at a stage, e.g.
 https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gate, bridges, kingdom).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built; owner play-tested** (asked for a chaser in Heaven and a 3-stumble rule — both built, owner: "it works great"). Next: Phase 3 — Sin, Grace & judgment.
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — Sin, Grace & judgment: **built and tested by Claude; waiting for the owner's phone play-test.**
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -47,8 +47,22 @@ Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built; owner play-test
 - Level complete bonus (+500 points), journey progress bar in the HUD, stage name, Heaven colour scheme
 - Reaching the end shows "You have reached God" (placeholder until judgment in Phase 3)
 
+## Phase 3 (built)
+- Lost souls (glowing ghosts reaching up): run through one to help it → + GRACE; it rises into the sky. Miss it → counts against you
+- Temptations (piles of cursed red gold, +25 coins): take it → + SIN; pass it by → + GRACE. Usually placed right before an obstacle (riskier path)
+- Miracle Shield (spinning golden halo, rare): halo around you that absorbs one hit (stumble, wall crash or fall); also + GRACE
+- Sin/Grace meter in the HUD with the 70% pass mark; pop-up messages for every choice
+- The Shadow looks bigger the more temptations you take (rules unchanged)
+- Final stage "The Light of God": you slow to a walk, the Shadow can't follow, the screen fills with light
+- God's judgment: glowing words, your journey counted line by line, Grace %, verdict and the exact reasons; tap to skip
+  - Fail (< 70%): "You are not yet ready." → RETURN TO HELL (new course, checkpoint cleared)
+  - Pass: "You are free to roam." → +500 coins (+1,000 at 85% "Blessed", +2,000 at 100% "Perfect"), Ascended State unlocked (placeholder until Phase 4), ASCENDED badge on the menu
+- Restarting from the Heaven's Gate checkpoint keeps your Sin/Grace record
+- Saved on the device: Ascended unlocked, best Grace %, perfect judgments, times God was reached
+
 ## How it was tested
-- 39 automatic tests (`npm test`), incl. the 3-stumble rule and the Devil→Shadow hand-over: state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
+- 51 automatic tests (`npm test`), incl. the 3-stumble rule, the Devil→Shadow hand-over, judgment math (70/85/100), Miracle Shield, checkpoint keeping Sin/Grace
+- Robot "saint" (helps souls, resists temptations) passes judgment on 4 random courses; robot "sinner" (grabs temptations) fails on all 4: state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
 - Robot player test: survives Hell + Stairway on 30 random courses, and completes the WHOLE journey to God on 15 random courses with every stage, level bonus and checkpoint firing in order
 - Browser flow test: teleported through every stage in a phone-sized browser; checked game states, the Devil giving up, checkpoint save, TRY AGAIN from the Gate, God screen, and CONTINUE after reloading
 - Played in a headless phone-sized browser (Pixel 7, iPhone 13 sizes): real swipe events, jump, coins, stumble, crash, game over, run again, pause, resume — no errors
@@ -71,8 +85,8 @@ Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built; owner play-test
 - [x] Tested on phone by the owner
 
 ## Remaining phases
-2. ~~Heaven ascension~~ (built)
-3. Sin, Grace & judgment (temptations, miracles, God encounter, pass/fail)
+2. ~~Heaven ascension~~ (done)
+3. ~~Sin, Grace & judgment~~ (built)
 4. Ascended State (endless mode, abilities, difficulty scaling)
 5. Economy & customization (shop, cosmetics, upgrades, save/load)
 6. Global competition (accounts, leaderboards, score validation)

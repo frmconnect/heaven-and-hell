@@ -7,6 +7,7 @@ import { ShadowAvatar } from '../enemies/ShadowAvatar';
 import { InputController } from '../input/InputController';
 import { PlayerAvatar } from '../player/PlayerAvatar';
 import { SaveData } from '../systems/SaveData';
+import { judge } from '../systems/SinGrace';
 import { HUD } from '../ui/HUD';
 import { Screens } from '../ui/Screens';
 import { CoinRenderer } from '../world/CoinRenderer';
@@ -16,6 +17,7 @@ import { Environment } from '../world/Environment';
 import { GATE_Z } from '../world/GateSet';
 import { groundHeight, journeyProgress, STAGES, stageStart, type ThemeId } from '../world/journey';
 import { ObstacleRenderer } from '../world/ObstacleRenderer';
+import { PickupRenderer } from '../world/PickupRenderer';
 
 const END_DELAY = 1.1; // seconds of "caught!" animation before the game-over screen
 const GOD_DELAY = 2.0; // seconds of light before the "reached God" screen
@@ -30,6 +32,7 @@ export class Game {
   private env: Environment;
   private obstacles: ObstacleRenderer;
   private coins: CoinRenderer;
+  private pickups: PickupRenderer;
   private player: PlayerAvatar;
   private devil: DevilAvatar;
   private shadow: ShadowAvatar;
@@ -54,6 +57,7 @@ export class Game {
     this.env = new Environment(this.scene);
     this.obstacles = new ObstacleRenderer(this.scene);
     this.coins = new CoinRenderer(this.scene);
+    this.pickups = new PickupRenderer(this.scene);
     this.player = new PlayerAvatar(this.scene);
     this.devil = new DevilAvatar(this.scene);
     this.shadow = new ShadowAvatar(this.scene);
@@ -63,9 +67,16 @@ export class Game {
     this.hud = new HUD(uiRoot, () => this.pause());
     this.screens = new Screens(uiRoot, {
       onPlay: () => this.startRun({}),
-      onContinue: () => this.startRun({ distance: this.save.data.checkpoint, coins: this.save.data.checkpointCoins }),
+      onContinue: () => this.startRun({ distance: this.save.data.checkpoint, coins: this.save.data.checkpointCoins, record: this.save.checkpointRecord }),
       onResume: () => this.resume(),
       onMenu: () => this.toMenu(),
+      onAscend: () => {
+        if (this.state.go(GameState.AscendedUnlocked)) this.screens.showAscended();
+      },
+      onReturnToHell: () => {
+        // "You are not yet ready." Back to the start of Hell, on a brand-new course (Decisions log #3)
+        if (this.state.go(GameState.JudgmentFailed)) this.startRun({ distance: 0 });
+      },
     });
 
     const input = new InputController(mount);
@@ -87,7 +98,7 @@ export class Game {
   }
 
   private showMenu(): void {
-    this.screens.showMenu(this.save.data.bestScore, this.save.data.checkpoint > 0);
+    this.screens.showMenu(this.save.data.bestScore, this.save.data.checkpoint > 0, this.save.data.ascended > 0);
   }
 
   /** For play-testing: add ?stage=gardens (or stairway, gate, bridges, kingdom) to the link to start there. */
@@ -109,6 +120,9 @@ export class Game {
     this.endTimer = 0;
     this.gateFlashed = d > GATE_Z;
     this.hud.setChaser(this.session.chaser === 'shadow' ? 'YOUR SINS' : 'THE DEVIL');
+    this.hud.setWhiteout(0);
+    this.shadow.setSin(this.session.moral.sin);
+    this.pickups.setHeaven(this.session.stage.id !== 'hell');
     this.screens.hideAll();
     this.state.go(target);
     this.runCount++;
@@ -204,9 +218,33 @@ export class Game {
           if (e.stage.level) this.hud.toast(`LEVEL ${e.stage.level}`, 2.4, e.stage.name);
           else if (e.stage.id === 'stairway') this.hud.toast('THE STAIRWAY', 2.4, 'Climb to Heaven');
           else if (e.stage.id === 'gate') this.hud.toast("HEAVEN'S GATE", 2.4);
+          else if (e.stage.id === 'god') this.hud.toast('THE LIGHT OF GOD', 2.6, 'Your sins cannot follow you here');
+          this.pickups.setHeaven(e.stage.id !== 'hell');
           break;
         case 'checkpoint':
-          this.save.setCheckpoint(stageStart('gate'), s.score.coins);
+          this.save.setCheckpoint(stageStart('gate'), s.score.coins, s.moral.record);
+          break;
+        case 'soulHelped':
+          this.hud.pop('+ GRACE · Soul saved', 'grace');
+          navigator.vibrate?.(20);
+          break;
+        case 'soulLost':
+          this.hud.pop('A lost soul was left behind', 'info');
+          break;
+        case 'temptationTaken':
+          this.hud.pop(`+ SIN · +${e.coins} coins`, 'sin');
+          this.shadow.setSin(s.moral.sin);
+          navigator.vibrate?.([30, 30, 30]);
+          break;
+        case 'resisted':
+          this.hud.pop('Temptation resisted · + GRACE', 'grace');
+          break;
+        case 'miracle':
+          this.hud.toast('MIRACLE SHIELD', 1.6, 'Protects you from one hit');
+          break;
+        case 'shieldUsed':
+          this.shake = 0.25;
+          this.hud.pop('The Miracle saved you!', 'grace');
           break;
         case 'levelComplete':
           this.hud.toast('LEVEL COMPLETE', 1.8, `+${e.bonus} points`);
@@ -245,12 +283,22 @@ export class Game {
     this.renderer.toneMappingExposure = this.env.exposure;
     this.obstacles.sync(s.obstacles, s.distance, vdt);
     this.coins.sync(s.coins, s.distance, vdt);
+    this.pickups.sync(s.pickups, s.distance, vdt);
+    this.player.setShield(s.shield, s.protectedNow && !s.shield, s.time);
+    // walking into God's light: the screen slowly fills with white
+    const god = s.stage.id === 'god';
+    if (running || paused) {
+      const godT = god ? Math.min(1, (s.distance - stageStart('god')) / STAGES[STAGES.length - 1].length) : 0;
+      this.hud.setWhiteout(s.completed ? 1 : godT * 0.8);
+      this.hud.setGrace(s.moral.percent, s.moral.choices);
+      this.hud.showChase(!god);
+    }
     const shadowCaught = s.ended === 'caught' && s.chaser === 'shadow';
     this.player.update(vdt, s.motion, running ? s.speed : 0, shadowCaught ? 'fall' : s.ended);
     const groundAt = (dz: number) => groundHeight(s.distance - dz) - g0;
     const devilChasing = s.chaser === 'devil';
     this.devil.update(vdt, devilChasing ? s.devil.gap : 1e3, s.motion.x, devilChasing && s.devil.caught, groundAt);
-    this.shadow.update(vdt, !devilChasing, s.devil.gap, s.motion.x, shadowCaught, groundAt);
+    this.shadow.update(vdt, !devilChasing && !god, s.devil.gap, s.motion.x, shadowCaught, groundAt);
     this.crumble.update(vdt);
     if (running || paused) {
       this.hud.update(vdt, s.score.score, s.distance, s.score.coins, s.devil.danger, journeyProgress(s.distance));
@@ -283,10 +331,12 @@ export class Game {
   private finishRun(): void {
     const s = this.session;
     if (s.completed) {
+      // God's judgment (Decisions log #17, #19)
+      const j = judge(s.moral.record);
       this.save.recordRun(s.score.score, s.distance, s.score.coins);
       this.save.data.journeysCompleted += 1;
-      this.save.save();
-      if (this.state.go(GameState.Judgment)) this.screens.showGodReached(s.score.score, s.score.coins);
+      this.save.recordJudgment(j.percent, j.passed, j.verdict === 'perfect', j.rewardCoins);
+      if (this.state.go(GameState.Judgment)) this.screens.showJudgment(j, s.moral.record);
       return;
     }
     if (!s.ended) return;

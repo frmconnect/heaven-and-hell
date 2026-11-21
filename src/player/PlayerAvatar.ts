@@ -14,6 +14,8 @@ export class PlayerAvatar {
   private phase = 0;
   private flash = 0;
   private fallY = 0;
+  private halo: THREE.Group;
+  private bubbleMat: THREE.MeshBasicMaterial;
 
   constructor(scene: THREE.Scene) {
     const skin = new THREE.MeshStandardMaterial({ color: '#e8b796', roughness: 0.8, flatShading: true });
@@ -46,6 +48,21 @@ export class PlayerAvatar {
     this.legL = limb(0.18, 0.82, dark, -0.14, 0.82);
     this.legR = limb(0.18, 0.82, dark, 0.14, 0.82);
 
+    // Miracle Shield: golden halo + soft light bubble (Decisions log #18)
+    this.halo = new THREE.Group();
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.28, 0.05, 8, 20),
+      new THREE.MeshStandardMaterial({ color: '#ffe27a', metalness: 0.9, roughness: 0.2, emissive: '#ffb000', emissiveIntensity: 1.2 }),
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.y = 2.1;
+    this.bubbleMat = new THREE.MeshBasicMaterial({ color: '#fff2b0', transparent: true, opacity: 0.18, depthWrite: false });
+    const bubble = new THREE.Mesh(new THREE.SphereGeometry(1.1, 16, 12), this.bubbleMat);
+    bubble.position.y = 1.0;
+    this.halo.add(ring, bubble);
+    this.halo.visible = false;
+    this.body.add(this.halo);
+
     // the player faces away from the camera (towards -z)
     this.root.add(this.body);
     scene.add(this.root);
@@ -60,6 +77,12 @@ export class PlayerAvatar {
 
   stumble(): void {
     this.flash = 0.5;
+  }
+
+  /** shield = halo on; safe = shield just broke (flicker). */
+  setShield(shield: boolean, safe: boolean, time: number): void {
+    this.halo.visible = shield || (safe && Math.floor(time * 12) % 2 === 0);
+    this.bubbleMat.opacity = shield ? 0.16 + Math.sin(time * 4) * 0.05 : 0.3;
   }
 
   update(dt: number, m: PlayerMotion, speed: number, ended: string | null): void {

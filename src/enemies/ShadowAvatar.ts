@@ -77,6 +77,11 @@ export class ShadowAvatar {
     scene.add(this.root);
   }
 
+  /** The Shadow grows with every temptation you take (Decisions log #14, #19). Looks only: the rules stay the same. */
+  setSin(sin: number): void {
+    this.root.scale.setScalar(0.85 * (1 + Math.min(sin, 10) * 0.045));
+  }
+
   /** active = the Shadow is the current chaser. Same placement rules as the Devil. */
   update(dt: number, active: boolean, gap: number, playerX: number, caught: boolean, groundAt: (dz: number) => number): void {
     this.time += dt;

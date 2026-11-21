@@ -116,7 +116,13 @@ export class RunSession {
       const t = 1 - this.stumbleTimer / CONFIG.run.stumbleRecoverTime;
       mult = CONFIG.run.stumbleSlowdown + (1 - CONFIG.run.stumbleSlowdown) * t;
     }
-    this.speed = base * mult;
+    // walking into God's light: you slow down to a walk
+    const st = stageAt(this.distance);
+    if (st.id === 'god') {
+      const t = Math.min(1, (this.distance - (JOURNEY_LENGTH - st.length)) / st.length);
+      mult *= 1 - 0.6 * t;
+    }
+    this.speed = Math.max(4, base * mult);
     this.score.addDistance(this.speed * dt);
     this.motion.update(dt);
     this.devil.update(dt);

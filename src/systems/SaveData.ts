@@ -1,3 +1,5 @@
+import type { MoralRecord } from './SinGrace';
+
 /** Everything the game remembers between sessions. More fields arrive in later phases. */
 export interface SaveState {
   version: 1;
@@ -9,6 +11,17 @@ export interface SaveState {
   checkpoint: number;
   checkpointCoins: number;
   journeysCompleted: number;
+  // Sin/Grace record at the checkpoint (so dying after the Gate can't wipe your sins)
+  cpSoulsHelped: number;
+  cpSoulsMissed: number;
+  cpResisted: number;
+  cpTaken: number;
+  cpMiracles: number;
+  // Phase 3: judgment
+  godReached: number; // times
+  ascended: number; // 1 = passed judgment, Ascended State unlocked
+  bestGrace: number;
+  perfectJudgments: number;
 }
 
 export interface KeyValueStore {
@@ -20,6 +33,8 @@ const KEY = 'heaven-and-hell.save';
 
 export const defaultSave = (): SaveState => ({
   version: 1, bestScore: 0, bestDistance: 0, totalCoins: 0, runs: 0, checkpoint: 0, checkpointCoins: 0, journeysCompleted: 0,
+  cpSoulsHelped: 0, cpSoulsMissed: 0, cpResisted: 0, cpTaken: 0, cpMiracles: 0,
+  godReached: 0, ascended: 0, bestGrace: 0, perfectJudgments: 0,
 });
 
 /** Saves progress on the device. Never throws: if storage is blocked, the game keeps working without saving. */
@@ -54,9 +69,35 @@ export class SaveData {
   }
 
   /** Remember reaching Heaven's Gate, so a crash in Heaven restarts there. */
-  setCheckpoint(distance: number, coins: number): void {
+  setCheckpoint(distance: number, coins: number, r?: MoralRecord): void {
     this.data.checkpoint = distance;
     this.data.checkpointCoins = coins;
+    if (r) {
+      this.data.cpSoulsHelped = r.soulsHelped;
+      this.data.cpSoulsMissed = r.soulsMissed;
+      this.data.cpResisted = r.temptationsResisted;
+      this.data.cpTaken = r.temptationsTaken;
+      this.data.cpMiracles = r.miracles;
+    }
+    this.save();
+  }
+
+  get checkpointRecord(): MoralRecord {
+    const d = this.data;
+    return { soulsHelped: d.cpSoulsHelped, soulsMissed: d.cpSoulsMissed, temptationsResisted: d.cpResisted, temptationsTaken: d.cpTaken, miracles: d.cpMiracles };
+  }
+
+  /** Record God's judgment. Passing unlocks the Ascended State and pays the reward. */
+  recordJudgment(percent: number, passed: boolean, perfect: boolean, rewardCoins: number): void {
+    const d = this.data;
+    d.godReached += 1;
+    d.bestGrace = Math.max(d.bestGrace, percent);
+    if (passed) d.ascended = 1;
+    if (perfect) d.perfectJudgments += 1;
+    d.totalCoins += rewardCoins;
+    // the journey is over either way: pass → free to roam, fail → back to Hell (Decisions log #3, #12)
+    d.checkpoint = 0;
+    d.checkpointCoins = 0;
     this.save();
   }
 
