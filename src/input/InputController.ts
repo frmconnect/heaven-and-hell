@@ -4,7 +4,8 @@ const SWIPE_MIN_PX = 28;
 
 /**
  * Turns swipes (phone) and arrow keys / WASD (computer) into game actions.
- * A swipe fires as soon as the finger has moved far enough, so it feels instant.
+ * A swipe fires as soon as the finger has moved far enough, so it feels instant,
+ * and each touch gives exactly one move (a long swipe never moves two lanes).
  */
 export class InputController {
   private startX = 0;
@@ -46,7 +47,8 @@ export class InputController {
   };
   private onEnd = (e: TouchEvent): void => {
     if (e.cancelable) e.preventDefault();
-    this.finish();
+    const t = e.changedTouches[0];
+    this.finish(t?.clientX, t?.clientY);
   };
   // Mouse drag works too (handy on a computer). Touch is handled above.
   private onPointerDown = (e: PointerEvent): void => {
@@ -58,7 +60,7 @@ export class InputController {
   };
   private onPointerUp = (e: PointerEvent): void => {
     if (e.pointerType === 'touch') return;
-    this.finish();
+    this.finish(e.clientX, e.clientY);
   };
 
   private begin(x: number, y: number): void {
@@ -68,17 +70,17 @@ export class InputController {
     this.moved = false;
   }
   private track(x: number, y: number): void {
-    if (!this.tracking) return;
+    if (!this.tracking || this.moved) return;
     const action = swipeToAction(x - this.startX, y - this.startY);
     if (action) {
+      // one swipe = one move: ignore the rest of this finger movement until it lifts
       this.emit(action);
       this.moved = true;
-      // allow chaining another swipe without lifting the finger
-      this.startX = x;
-      this.startY = y;
     }
   }
-  private finish(): void {
+  private finish(x?: number, y?: number): void {
+    // a very fast flick may only report where it ended, so check the end point too
+    if (this.tracking && !this.moved && x !== undefined && y !== undefined) this.track(x, y);
     if (this.tracking && !this.moved) for (const h of this.tapHandlers) h();
     this.tracking = false;
   }

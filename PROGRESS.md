@@ -28,7 +28,7 @@ Phase 1 — Playable prototype (Hell run). **Built and tested by Claude; waiting
 - Friendly error screen instead of a blank page if something breaks
 
 ## How it was tested
-- 27 unit tests (`npm test`): state machine, lanes, jump/slide, swipe detection, collisions, Devil, score, save data
+- 31 unit tests (`npm test`): state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
 - Robot player test: plays 40 different random courses for 3,000 m each and survives all of them, proving every course is fair
 - Played in a headless phone-sized browser (Pixel 7, iPhone 13 sizes): real swipe events, jump, coins, stumble, crash, game over, run again, pause, resume — no errors
 
@@ -58,6 +58,7 @@ Phase 1 — Playable prototype (Hell run). **Built and tested by Claude; waiting
 7. Polish & release (art, music, performance, Capacitor builds, store release)
 
 ## Known bugs / limits
+- FIXED: a long swipe from an outer lane jumped two lanes to the far side. Now each swipe moves exactly one lane (found by the owner on their phone).
 - No sound yet (planned for later; must be original or licensed)
 - Hell is endless for now — the exit to the Stairway comes in Phase 2
 - Not yet tested on a real phone (frame rate unknown until the owner tries it)
