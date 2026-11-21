@@ -4,9 +4,9 @@
 
 1. **Name:** Working title changed from "Heaven's Gate" to **"Heaven & Hell"**. Final name still open. Inside the game, "Heaven's Gate" stays as the name of the gate/milestone.
 2. **Engine:** **Three.js + Vite + TypeScript (web first)** instead of Unity, because the owner doesn't code and works from a phone: Claude can build and test everything, and every version is playable from a link. Package for Android/iOS with Capacitor later. Section 17's system list and game states still apply, written in TypeScript.
-3. **Failing judgment:** Like other free runners, the player **starts again from the beginning in Hell**. To keep restarts fresh, each new attempt changes things up: obstacle patterns, spacing and timing are varied per run, so it's never the exact same course twice. Exact variation rules to be decided in Phase 3.
+3. **Failing judgment:** Like other free runners, the player **starts again from the beginning in Hell**. To keep restarts fresh, each new attempt changes things up: obstacle patterns, spacing and timing are varied per run, so it's never the exact same course twice. Variation rule (Phase 3): every attempt gets a brand-new random course (new obstacle rows, spacing, souls, temptations and Miracles).
 4. **Journey length:** Keep the full journey to God short enough that restarting isn't painful (start with ~10–15 minutes and tune through play-testing).
-5. **Showing God:** Recommended to show God as overwhelming light and a voice rather than a figure. (Recommendation — owner to confirm in Phase 3.)
+5. **Showing God:** God is shown as overwhelming light and a voice (large glowing words on screen), not a figure. (Confirmed by owner in Phase 3.)
 6. **Heavenly levels:** Launch with 2–3 heavenly levels; add more after release.
 7. **Leaderboards:** Start with local high scores. For online, consider Apple Game Center / Google Play Games Services before building a custom server.
 8. **Art for the prototype:** Stylized low-poly visuals built in code; real 3D models added later.
@@ -17,6 +17,10 @@
 13. **Falling through a stair gap:** A dramatic fall with Hell visible below, then the run is over (same as falling into lava).
 14. **The Shadow of your sins (owner's choice after play-testing the Stairway):** When the Devil gives up on the Stairway, a dark ghostly spirit made of your sins rises and takes over the chase right away, through the rest of the Stairway, the Gate and all heavenly levels. Same rules as the Devil: stumbles let it close in, three stumbles close together and it catches you (run over, see #15). In Phase 3 it can grow stronger the more Sin you carry.
 15. **Stumble rule, same everywhere (owner):** 3 stumbles close together ends the run, in every stage. Running clean for a few seconds lets the chaser drop back again, so it's never impossible to recover. In Hell the Devil grabs you; from the Stairway on, the Shadow grabs you, the floor crumbles and you fall away toward Hell.
+16. **Sin & Grace sources (owner, Phase 3):** GRACE = running through a lost soul to help it, and passing a temptation without taking it. SIN = grabbing a temptation (a pile of cursed red gold worth lots of coins, often placed on a riskier path). Ordinary stumbles and crashes never count as Sin.
+17. **Judgment (owner, Phase 3):** Grace % = good choices out of all the souls and temptations you met (each Miracle collected also counts as a good choice). 70% = pass, 85% = extra reward, 100% = perfect judgment. The judgment screen always shows exactly why you passed or failed.
+18. **First Miracle (owner, Phase 3):** Miracle Shield — a glowing halo that absorbs one hit (a stumble, a wall crash or a fall). Rare pickup; collecting one also adds Grace.
+19. **Judgment defaults (Claude's proposal, owner can change):** Fail → "You are not yet ready." → back to Hell, checkpoint cleared. Pass → "You are free to roam." → +500 coins (+1,000 at 85%, +2,000 at 100%) and the Ascended State unlocks (built in Phase 4). The Shadow looks bigger the more Sin you carry (the 3-stumble rule stays the same). Restarting from the Heaven's Gate checkpoint keeps the Sin/Grace record from before the Gate.
 
 ---
 
