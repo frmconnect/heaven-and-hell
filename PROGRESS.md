@@ -8,7 +8,7 @@ Add `?stage=` to the play link to start right at a stage, e.g.
 https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gate, bridges, kingdom).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built; owner play-tested up to the Stairway**, asked for a chaser in Heaven and a 3-stumble rule (both built). Waiting for more play-testing.
+Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built; owner play-tested** (asked for a chaser in Heaven and a 3-stumble rule — both built, owner: "it works great"). Next: Phase 3 — Sin, Grace & judgment.
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
