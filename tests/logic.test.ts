@@ -121,7 +121,7 @@ describe('swipe detection', () => {
 
 describe('collisions', () => {
   const ob = (kind: ObstacleData['kind'], lane = 1): ObstacleData => ({ id: 1, kind, lane, z: 50, hit: false });
-  const at = (y: number, height = CONFIG.player.height, x = laneX(1)) => ({ x, y, z: 50, height });
+  const at = (y: number, height: number = CONFIG.player.height, x: number = laneX(1)) => ({ x, y, z: 50, height });
   it('low barrier: hit when running, clear when jumping high enough', () => {
     expect(overlaps(at(0), ob('low'))).toBe(true);
     expect(overlaps(at(0.9), ob('low'))).toBe(false);
