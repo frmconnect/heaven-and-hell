@@ -17,15 +17,16 @@ const RUN_STATES = [S.HellRun, S.HeavenAscent, S.HeavenLevel, S.AscendedRun];
 
 /** Which states each state may move to. Anything else is refused. */
 const ALLOWED: Record<GameState, GameState[]> = {
-  [S.MainMenu]: [S.HellRun, S.AscendedRun],
+  [S.MainMenu]: [...RUN_STATES],
   [S.HellRun]: [S.HeavenAscent, S.GameOver, S.Paused, S.MainMenu],
   [S.HeavenAscent]: [S.HeavenLevel, S.GameOver, S.Paused, S.MainMenu],
   [S.HeavenLevel]: [S.HeavenLevel, S.Judgment, S.GameOver, S.Paused, S.MainMenu],
-  [S.Judgment]: [S.JudgmentFailed, S.AscendedUnlocked],
+  // MainMenu is a temporary exit until judgment is built in Phase 3
+  [S.Judgment]: [S.JudgmentFailed, S.AscendedUnlocked, S.MainMenu],
   [S.JudgmentFailed]: [S.HellRun, S.MainMenu],
   [S.AscendedUnlocked]: [S.AscendedRun, S.MainMenu],
   [S.AscendedRun]: [S.GameOver, S.Paused, S.MainMenu],
-  [S.GameOver]: [S.HellRun, S.AscendedRun, S.MainMenu],
+  [S.GameOver]: [...RUN_STATES, S.MainMenu],
   [S.Paused]: [...RUN_STATES, S.MainMenu],
 };
 

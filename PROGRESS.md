@@ -3,8 +3,12 @@
 **Play-test link:** https://frmconnect.github.io/heaven-and-hell/ (updates automatically on every push to `main`)
 Backup link (private to the owner): https://claude.ai/artifact/9bWTMjYKWmHtekqSXBgnHm
 
+## How to test a later stage quickly
+Add `?stage=` to the play link to start right at a stage, e.g.
+https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gate, bridges, kingdom).
+
 ## Current phase
-Phase 1 — **Complete** (owner play-tested on phone: "It feels good"). Next: Phase 2 — Heaven ascension. Owner answered the Phase 2 design questions (Decisions log #10–13).
+Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built and tested by Claude; waiting for the owner's phone play-test.**
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -27,9 +31,24 @@ Phase 1 — **Complete** (owner play-tested on phone: "It feels good"). Next: Ph
 - Best score, total coins and run count saved on the device
 - Friendly error screen instead of a blank page if something breaks
 
+## Phase 2 (built)
+- Journey map (`src/world/journey.ts`): Hell 2,000 m → Stairway 2,000 m → Heaven's Gate → 3 heavenly levels of 2,500 m each → God. About 9 minutes for a good run; all lengths tunable.
+- Stairway to Heaven: real climbing marble steps with gold railings, columns, angel statues, clouds; Hell's lava drops away below you
+- Devil chases you 650 m up the stairs, then falls back ("YOU ESCAPED!")
+- Stair gaps (you can see Hell's glow through them); falling through = run over
+- Heaven's Gate: giant pearly gates that swing open with light pouring out, white flash as you pass through
+- Checkpoint at Heaven's Gate: crash in Heaven → "TRY AGAIN from Heaven's Gate"; menu shows CONTINUE; remembered after closing the game
+- Level 1 The Heavenly Gardens: garden path, trees, fountains; hedges, vine arches, topiary trees
+- Level 2 The Celestial Bridges: crystal bridges over the clouds, floating islands; crystal pillars; narrow paths where two lanes fall away
+- Level 3 The Golden Kingdom: gold tiles, golden towers and temples; hardest mix
+- Sky, fog, light and floating particles blend smoothly from world to world; God's light grows ahead in Heaven
+- Level complete bonus (+500 points), journey progress bar in the HUD, stage name, Heaven colour scheme
+- Reaching the end shows "You have reached God" (placeholder until judgment in Phase 3)
+
 ## How it was tested
-- 31 unit tests (`npm test`): state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
-- Robot player test: plays 40 different random courses for 3,000 m each and survives all of them, proving every course is fair
+- 38 unit tests (`npm test`): state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
+- Robot player test: survives Hell + Stairway on 30 random courses, and completes the WHOLE journey to God on 15 random courses with every stage, level bonus and checkpoint firing in order
+- Browser flow test: teleported through every stage in a phone-sized browser; checked game states, the Devil giving up, checkpoint save, TRY AGAIN from the Gate, God screen, and CONTINUE after reloading
 - Played in a headless phone-sized browser (Pixel 7, iPhone 13 sizes): real swipe events, jump, coins, stumble, crash, game over, run again, pause, resume — no errors
 
 ## Phase 1 checklist
@@ -50,7 +69,7 @@ Phase 1 — **Complete** (owner play-tested on phone: "It feels good"). Next: Ph
 - [x] Tested on phone by the owner
 
 ## Remaining phases
-2. Heaven ascension (Stairway, Heaven's Gate, heavenly levels, transitions)
+2. ~~Heaven ascension~~ (built)
 3. Sin, Grace & judgment (temptations, miracles, God encounter, pass/fail)
 4. Ascended State (endless mode, abilities, difficulty scaling)
 5. Economy & customization (shop, cosmetics, upgrades, save/load)
@@ -60,7 +79,9 @@ Phase 1 — **Complete** (owner play-tested on phone: "It feels good"). Next: Ph
 ## Known bugs / limits
 - FIXED: a long swipe from an outer lane jumped two lanes to the far side. Now each swipe moves exactly one lane (found by the owner on their phone).
 - No sound yet (planned for later; must be original or licensed)
-- Hell is endless for now — the exit to the Stairway comes in Phase 2
+
+- When the Devil is right on your heels he partly hides the player (only just before he catches you).
+- In Heaven a stumble only slows you down (no Devil) — see open decisions.
 
 ## Technical decisions
 - Web-first with Three.js so Claude can build and test everything end to end and the owner can play each version on a phone. Package with Capacitor for Android/iOS later.
@@ -77,6 +98,8 @@ Phase 1 — **Complete** (owner play-tested on phone: "It feels good"). Next: Ph
 - Backup play link: `scripts/make-single-file.mjs` packs the build into one file, published as a private claude.ai page.
 
 ## Open design decisions
+- **Stumbles in Heaven:** with the Devil gone, hitting a barrier only slows you. Should there be another penalty (e.g. 3 stumbles close together = you fall)? Recommend deciding after play-testing.
+- **Journey length:** currently ~9 minutes for a good run (target 10–15). Tune after play-testing.
 - Final game name (working title "Heaven & Hell")
 - Exactly how runs vary after a failed judgment (see Decisions log in GAME_DESIGN.md)
 - Art source for final version (free CC0 models vs. commissioned artist)

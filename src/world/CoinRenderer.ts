@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { laneX } from '../core/config';
+import { groundHeight } from './journey';
 import type { CoinData } from './TrackGenerator';
 
 const MAX = 400;
@@ -23,9 +24,10 @@ export class CoinRenderer {
   sync(coins: readonly CoinData[], distance: number, dt: number): void {
     this.time += dt;
     let n = 0;
+    const g0 = groundHeight(distance);
     for (const c of coins) {
       if (c.taken || n >= MAX) continue;
-      this.dummy.position.set(laneX(c.lane), c.y + Math.sin(this.time * 4 + c.z) * 0.08, -(c.z - distance));
+      this.dummy.position.set(laneX(c.lane), groundHeight(c.z) - g0 + c.y + Math.sin(this.time * 4 + c.z) * 0.08, -(c.z - distance));
       this.dummy.rotation.set(0, this.time * 3 + c.z * 0.3, 0);
       this.dummy.updateMatrix();
       this.mesh.setMatrixAt(n++, this.dummy.matrix);

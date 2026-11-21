@@ -83,21 +83,23 @@ export class DevilAvatar {
     this.aura.position.set(0, 3, -1);
 
     this.root.add(body, head, jaw, hornL, hornR, eyeL, eyeR, this.wingL, this.wingR, this.armL, this.armR, legL, legR, this.aura);
+    this.root.scale.setScalar(0.85);
     scene.add(this.root);
   }
 
-  /** gap = metres behind the player. */
-  update(dt: number, gap: number, playerX: number, caught: boolean): void {
+  /** gap = metres behind the player. groundAt(dz) = ground height dz metres behind the player (stairs). */
+  update(dt: number, gap: number, playerX: number, caught: boolean, groundAt: (dz: number) => number = () => 0): void {
     this.time += dt;
     // on screen he sits a bit closer than the real gap so he's visible when dangerous
     // he stays in a band behind the player; when far away he drops back out of view below the camera
-    const z = caught ? 1.4 : 2.3 + Math.min(gap, 7) * 0.42;
-    const sink = caught ? 0 : Math.max(0, gap - 6.5) * 1.6;
+    // close = right behind the player; further back = lower, peeking up from the bottom of the screen
+    const z = caught ? 1.6 : 2.7 + Math.min(gap, 8) * 0.3;
+    const sink = caught ? 0 : Math.min(30, 0.8 + Math.max(0, gap - 2) * 0.45 + Math.max(0, gap - 7) * 1.5);
     this.root.position.z = THREE.MathUtils.lerp(this.root.position.z || z, z, Math.min(1, dt * (caught ? 10 : 4)));
     this.x = THREE.MathUtils.lerp(this.x, playerX * 0.8, Math.min(1, dt * 3));
     this.root.position.x = this.x;
     this.sinkY = THREE.MathUtils.lerp(this.sinkY, sink, Math.min(1, dt * 4));
-    this.root.position.y = Math.abs(Math.sin(this.time * 6)) * 0.25 - 0.2 - this.sinkY;
+    this.root.position.y = Math.abs(Math.sin(this.time * 6)) * 0.25 - 0.2 - this.sinkY + groundAt(this.root.position.z);
     this.root.visible = this.sinkY < 5.5;
     const flap = Math.sin(this.time * 7) * 0.5;
     this.wingL.rotation.y = 0.5 + flap;
