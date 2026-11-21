@@ -4,7 +4,7 @@
 Backup link (private to the owner): https://claude.ai/artifact/9bWTMjYKWmHtekqSXBgnHm
 
 ## Current phase
-Phase 1 — Playable prototype (Hell run). **Built and tested by Claude; waiting for the owner's phone play-test.**
+Phase 1 — **Complete** (owner play-tested on phone: "It feels good"). Next: Phase 2 — Heaven ascension (waiting on owner's design answers).
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -47,7 +47,7 @@ Phase 1 — Playable prototype (Hell run). **Built and tested by Claude; waiting
 - [x] Devil chasing behind; gets closer on stumbles, falls back with clean running
 - [x] Coins + distance/score HUD
 - [x] Game over screen + tap to restart
-- [ ] Tested on phone by the owner
+- [x] Tested on phone by the owner
 
 ## Remaining phases
 2. Heaven ascension (Stairway, Heaven's Gate, heavenly levels, transitions)
@@ -61,14 +61,13 @@ Phase 1 — Playable prototype (Hell run). **Built and tested by Claude; waiting
 - FIXED: a long swipe from an outer lane jumped two lanes to the far side. Now each swipe moves exactly one lane (found by the owner on their phone).
 - No sound yet (planned for later; must be original or licensed)
 - Hell is endless for now — the exit to the Stairway comes in Phase 2
-- Not yet tested on a real phone (frame rate unknown until the owner tries it)
 
 ## Technical decisions
 - Web-first with Three.js so Claude can build and test everything end to end and the owner can play each version on a phone. Package with Capacitor for Android/iOS later.
 - Game rules (`src/core/RunSession.ts` and friends) are separate from the 3D drawing, so they can be tested by a robot player without a screen.
 - All balancing numbers live in `src/core/config.ts`.
 - Obstacles are pooled and coins are drawn in one batch, for phone performance.
-- **Collision rules (Claude's choice for the prototype — owner can change):**
+- **Collision rules (confirmed by owner — Decisions log #9):**
   - Hitting a fire barrier or burning beam = stumble: you slow down briefly and the Devil gains on you.
   - Two stumbles close together = the Devil catches you.
   - Running head-first into a rock wall = crash, run over.
@@ -78,7 +77,6 @@ Phase 1 — Playable prototype (Hell run). **Built and tested by Claude; waiting
 - Backup play link: `scripts/make-single-file.mjs` packs the build into one file, published as a private claude.ai page.
 
 ## Open design decisions
-- Are the collision rules above right? (e.g. should a wall crash be a stumble instead?)
 - Final game name (working title "Heaven & Hell")
 - Exactly how runs vary after a failed judgment (see Decisions log in GAME_DESIGN.md)
 - Art source for final version (free CC0 models vs. commissioned artist)

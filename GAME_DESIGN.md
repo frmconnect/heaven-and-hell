@@ -10,6 +10,7 @@
 6. **Heavenly levels:** Launch with 2–3 heavenly levels; add more after release.
 7. **Leaderboards:** Start with local high scores. For online, consider Apple Game Center / Google Play Games Services before building a custom server.
 8. **Art for the prototype:** Stylized low-poly visuals built in code; real 3D models added later.
+9. **Collision rules (confirmed by owner after phone play-test):** Hitting a fire barrier or burning beam = stumble (you slow down and the Devil gains on you; two stumbles close together and he catches you). Running head-first into a rock wall = run over. Falling into lava = run over. Clipping a wall from the side while changing lanes = bounce back + stumble.
 
 ---
 
