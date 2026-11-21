@@ -1,7 +1,7 @@
 # PROGRESS — Heaven & Hell
 
-Play-test link (works now, private to the owner): https://claude.ai/artifact/9bWTMjYKWmHtekqSXBgnHm
-GitHub Pages link: _not live yet_ — the repo is private, and GitHub Pages on a private repo needs a paid GitHub plan. See "Open decisions".
+**Play-test link:** https://frmconnect.github.io/heaven-and-hell/ (updates automatically on every push to `main`)
+Backup link (private to the owner): https://claude.ai/artifact/9bWTMjYKWmHtekqSXBgnHm
 
 ## Current phase
 Phase 1 — Playable prototype (Hell run). **Built and tested by Claude; waiting for the owner's phone play-test.**
@@ -34,7 +34,7 @@ Phase 1 — Playable prototype (Hell run). **Built and tested by Claude; waiting
 
 ## Phase 1 checklist
 - [x] Project setup (Vite + TypeScript + Three.js + Vitest)
-- [~] GitHub Pages auto-deploy (workflow ready; blocked on private repo — see open decisions)
+- [x] GitHub Pages auto-deploy (repo made public, Pages source = GitHub Actions, first deploy succeeded)
 - [x] Game loop + central game state manager
 - [x] Player auto-runs forward
 - [x] 3 lanes, swipe left/right (and arrow keys)
@@ -74,10 +74,10 @@ Phase 1 — Playable prototype (Hell run). **Built and tested by Claude; waiting
   - Running head-first into a rock wall = crash, run over.
   - Clipping a wall from the side while changing lanes = bounce back + stumble.
   - Lava pit = you fall in, run over.
-- Instant play link: `scripts/make-single-file.mjs` packs the build into one file, published as a private claude.ai page.
+- Owner made the repo public so GitHub Pages is free; owner approved merging work into `main`.
+- Backup play link: `scripts/make-single-file.mjs` packs the build into one file, published as a private claude.ai page.
 
 ## Open design decisions
-- **How to publish the play-test link long term:** make the GitHub repo public (free GitHub Pages), upgrade GitHub (paid), or keep using the private claude.ai link. Also needs the work merged into `main`.
 - Are the collision rules above right? (e.g. should a wall crash be a stumble instead?)
 - Final game name (working title "Heaven & Hell")
 - Exactly how runs vary after a failed judgment (see Decisions log in GAME_DESIGN.md)
