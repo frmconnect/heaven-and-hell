@@ -4,7 +4,7 @@
 Backup link (private to the owner): https://claude.ai/artifact/9bWTMjYKWmHtekqSXBgnHm
 
 ## Current phase
-Phase 1 — **Complete** (owner play-tested on phone: "It feels good"). Next: Phase 2 — Heaven ascension (waiting on owner's design answers).
+Phase 1 — **Complete** (owner play-tested on phone: "It feels good"). Next: Phase 2 — Heaven ascension. Owner answered the Phase 2 design questions (Decisions log #10–13).
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
