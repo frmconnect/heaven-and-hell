@@ -46,7 +46,7 @@ Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built and tested by Cl
 - Reaching the end shows "You have reached God" (placeholder until judgment in Phase 3)
 
 ## How it was tested
-- 38 unit tests (`npm test`): state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
+- 37 automatic tests (`npm test`): state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
 - Robot player test: survives Hell + Stairway on 30 random courses, and completes the WHOLE journey to God on 15 random courses with every stage, level bonus and checkpoint firing in order
 - Browser flow test: teleported through every stage in a phone-sized browser; checked game states, the Devil giving up, checkpoint save, TRY AGAIN from the Gate, God screen, and CONTINUE after reloading
 - Played in a headless phone-sized browser (Pixel 7, iPhone 13 sizes): real swipe events, jump, coins, stumble, crash, game over, run again, pause, resume — no errors
