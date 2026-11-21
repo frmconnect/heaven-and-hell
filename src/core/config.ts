@@ -54,6 +54,21 @@ export const CONFIG = {
   score: {
     pointsPerMetre: 1,
   },
+  // Phase 3: souls, temptations, Miracles and judgment (Decisions log #16-19)
+  moral: {
+    encounterEvery: [260, 380], // metres between a soul or a temptation
+    temptationChance: 0.5, // otherwise a lost soul
+    temptationCoins: 25, // coins in a pile of cursed gold
+    miracleEvery: [1300, 1900], // metres between Miracle Shields
+    pickupRadius: 1.3,
+    shieldInvulnerable: 1.0, // seconds of safety after the shield breaks
+  },
+  judgment: {
+    pass: 70, // Grace % needed to pass
+    extra: 85, // extra reward
+    perfect: 100,
+    rewardCoins: { pass: 500, extra: 1000, perfect: 2000 },
+  },
   camera: {
     height: 4.6,
     distance: 7.2,

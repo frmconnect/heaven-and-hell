@@ -39,9 +39,20 @@ describe('TrackGenerator', () => {
   });
 });
 
-/** A simple robot player: looks at the next row, moves to a lane without a wall, then jumps or slides. */
-export function botStep(s: RunSession): void {
+/** A simple robot player: looks at the next row, moves to a lane without a wall, then jumps or slides.
+ *  style 'saint' goes for souls, 'sinner' goes for temptations, 'none' ignores both. */
+export function botStep(s: RunSession, style: 'none' | 'saint' | 'sinner' = 'none'): void {
   const d = s.distance;
+  if (style !== 'none') {
+    const want = style === 'saint' ? 'soul' : 'temptation';
+    const firstRow = Math.min(...s.obstacles.filter((o) => o.z + lengthOf(o) / 2 > d).map((o) => o.z - lengthOf(o) / 2), Infinity);
+    const target = s.pickups.find((p) => !p.resolved && p.kind === want && p.z > d && p.z < firstRow && p.z - d < 30);
+    if (target) {
+      if (target.lane < s.motion.lane) s.act('left');
+      else if (target.lane > s.motion.lane) s.act('right');
+      return;
+    }
+  }
   const ahead = s.obstacles.filter((o) => o.z + lengthOf(o) / 2 > d - 0.5).sort((a, b) => a.z - lengthOf(a) / 2 - (b.z - lengthOf(b) / 2));
   if (!ahead.length) return;
   const rowZ = ahead[0].z;
@@ -63,10 +74,10 @@ export function botStep(s: RunSession): void {
   if (o.kind === 'high' && near < s.speed * 0.25 && near > 0 && !m.sliding) s.act('slide');
 }
 
-function play(s: RunSession, maxDistance: number) {
+function play(s: RunSession, maxDistance: number, style: 'none' | 'saint' | 'sinner' = 'none') {
   const events: string[] = [];
   while (!s.over && s.distance < maxDistance) {
-    botStep(s);
+    botStep(s, style);
     s.update(1 / 60);
     for (const e of s.drainEvents()) if (e.type !== 'coin') events.push(e.type === 'stage' ? `stage:${e.stage.id}` : e.type);
   }
@@ -91,7 +102,7 @@ describe('a robot can survive the course (it is always fair)', () => {
       if (!s.completed) failures.push(`seed ${seed}: ${s.ended} at ${Math.floor(s.distance)} m (${s.stage.id})`);
       else if (seed === 100) {
         expect(ev.filter((e) => e.startsWith('stage') || e === 'devilGivesUp' || e === 'checkpoint' || e === 'journeyComplete')).toEqual([
-          'stage:stairway', 'devilGivesUp', 'stage:gate', 'checkpoint', 'stage:gardens', 'stage:bridges', 'stage:kingdom', 'journeyComplete',
+          'stage:stairway', 'devilGivesUp', 'stage:gate', 'checkpoint', 'stage:gardens', 'stage:bridges', 'stage:kingdom', 'stage:god', 'journeyComplete',
         ]);
         expect(ev.filter((e) => e === 'levelComplete')).toHaveLength(3);
       }
@@ -112,6 +123,52 @@ describe('a robot can survive the course (it is always fair)', () => {
     play(s, 1500);
     expect(s.score.coins).toBeGreaterThan(20);
     expect(s.speed).toBeGreaterThan(CONFIG.run.startSpeed + 4);
+  });
+  it('souls, temptations and Miracles appear along the whole journey', () => {
+    const { pickups, obstacles } = new TrackGenerator(12).generate(JOURNEY_LENGTH, 22);
+    const souls = pickups.filter((p) => p.kind === 'soul').length;
+    const temptations = pickups.filter((p) => p.kind === 'temptation').length;
+    const miracles = pickups.filter((p) => p.kind === 'miracle').length;
+    expect(souls + temptations).toBeGreaterThan(25);
+    expect(souls).toBeGreaterThan(8);
+    expect(temptations).toBeGreaterThan(8);
+    expect(miracles).toBeGreaterThanOrEqual(4);
+    // temptations usually sit right in front of an obstacle in the same lane (the riskier path)
+    const risky = pickups.filter((p) => p.kind === 'temptation' && obstacles.some((o) => o.lane === p.lane && o.z - p.z > 0 && o.z - p.z < 6));
+    expect(risky.length / temptations).toBeGreaterThan(0.5);
+    // never inside an obstacle
+    for (const p of pickups) for (const o of obstacles) if (o.lane === p.lane) expect(Math.abs(o.z - p.z)).toBeGreaterThan(lengthOf(o) / 2 + 1);
+  });
+  it('a robot "saint" passes judgment and a robot "sinner" fails', async () => {
+    const { judge } = await import('../src/systems/SinGrace');
+    let saintPasses = 0, sinnerFails = 0;
+    for (const seed of [201, 202, 203, 204]) {
+      const a = new RunSession(seed);
+      play(a, JOURNEY_LENGTH + 50, 'saint');
+      if (a.completed && judge(a.moral.record).passed) saintPasses++;
+      const b = new RunSession(seed);
+      play(b, JOURNEY_LENGTH + 50, 'sinner');
+      if (b.over && !judge(b.moral.record).passed) sinnerFails++;
+      expect(b.moral.record.temptationsTaken).toBeGreaterThan(3);
+    }
+    expect(saintPasses).toBe(4);
+    expect(sinnerFails).toBe(4);
+  });
+  it('the Miracle Shield absorbs one hit, even a head-on wall crash', () => {
+    const s = new RunSession(4, { distance: 1000 });
+    s.obstacles = [];
+    s.shield = true;
+    s.obstacles.push({ id: 7001, kind: 'wall', lane: 1, z: s.distance + 1, hit: false, theme: 'hell' });
+    s.update(1 / 60);
+    expect(s.ended).toBeNull();
+    expect(s.shield).toBe(false);
+    const e = s.drainEvents().map((x) => x.type);
+    expect(e).toContain('shieldUsed');
+  });
+  it('restarting from the checkpoint keeps the Sin/Grace record', () => {
+    const s = new RunSession(4, { distance: stageStart('gate'), record: { soulsHelped: 5, soulsMissed: 1, temptationsResisted: 2, temptationsTaken: 2, miracles: 0 } });
+    expect(s.moral.record.soulsHelped).toBe(5);
+    expect(s.moral.percent).toBe(70);
   });
   it('a player who does nothing gets caught or crashes quickly', () => {
     const s = new RunSession(5);

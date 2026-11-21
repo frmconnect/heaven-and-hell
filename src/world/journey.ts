@@ -1,7 +1,7 @@
 import { GameState } from '../core/GameStateManager';
 
 /** The look of a stretch of track. */
-export type ThemeId = 'hell' | 'stairway' | 'gate' | 'gardens' | 'bridges' | 'kingdom';
+export type ThemeId = 'hell' | 'stairway' | 'gate' | 'gardens' | 'bridges' | 'kingdom' | 'god';
 
 export interface StageDef {
   id: ThemeId;
@@ -26,6 +26,8 @@ export const STAGES: StageDef[] = [
   { id: 'gardens', name: 'The Heavenly Gardens', length: 2500, state: GameState.HeavenLevel, slope: 0, obstacles: true, difficulty: [0.45, 0.75], level: 1 },
   { id: 'bridges', name: 'The Celestial Bridges', length: 2500, state: GameState.HeavenLevel, slope: 0.03, obstacles: true, difficulty: [0.55, 0.85], level: 2 },
   { id: 'kingdom', name: 'The Golden Kingdom', length: 2500, state: GameState.HeavenLevel, slope: 0, obstacles: true, difficulty: [0.7, 1], level: 3 },
+  // you run into God's light; judgment begins at the end (Decisions log #5)
+  { id: 'god', name: 'The Light of God', length: 160, state: GameState.HeavenLevel, slope: 0, obstacles: false, difficulty: [0, 0] },
 ];
 
 /** How far up the stairs the Devil follows before giving up (Decisions log #11). */

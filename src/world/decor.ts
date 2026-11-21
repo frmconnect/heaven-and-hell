@@ -125,6 +125,11 @@ export function buildTile(theme: ThemeId): TileBuild {
       g.add(mesh(G.box, M.gold, TRACK_WIDTH + 0.2, 0.25, 0.4, 0, -0.5, 0));
       for (const s of [-1, 1]) g.add(railing(s, 0, 2));
       return { obj: g, stepped: false };
+    case 'god':
+      flat(M.marble);
+      g.add(mesh(G.box, M.glowWhite, 1.2, 0.04, TILE, 0, 0.01, 0));
+      for (const s of [-1, 1]) g.add(mesh(G.box, M.gold, 0.3, 0.3, TILE, s * (TRACK_WIDTH / 2), 0.1, 0));
+      return { obj: g, stepped: false };
     case 'kingdom':
       flat(M.goldTiles);
       for (const s of [-1, 1]) g.add(mesh(G.box, M.gold, 0.3, 0.3, TILE, s * (TRACK_WIDTH / 2), 0.1, 0));
@@ -289,6 +294,10 @@ export const DECOR: Record<ThemeId, DecorSpec[]> = {
     { build: floatingIsland, minX: near + 10, maxX: 40, y: [-6, 8], scale: [0.7, 1.6] },
     { build: cloudPuff, minX: near + 6, maxX: 40, y: [-16, -6], scale: [1.5, 3] },
   ],
+  god: [
+    { build: () => cloudPuff(M.goldCloud), minX: near + 2, maxX: 26, y: [-2, 3], scale: [1.4, 3] },
+    { build: goldColumn, minX: near + 0.7, maxX: near + 0.7 },
+  ],
   kingdom: [
     { build: goldColumn, minX: near + 0.7, maxX: near + 0.7 },
     { build: goldTower, minX: near + 7, maxX: 30, scale: [0.8, 1.6] },
@@ -312,5 +321,6 @@ export const SEAS: Partial<Record<ThemeId, SeaSpec>> = {
   gate: { material: cloudSea, y: -3 },
   gardens: { material: new THREE.MeshStandardMaterial({ color: '#8cc868', roughness: 1 }), y: -0.6 },
   bridges: { material: cloudSea, y: -24 },
+  god: { material: cloudSea, y: -4 },
   kingdom: { material: new THREE.MeshStandardMaterial({ map: goldCloudTex, roughness: 1, emissive: '#ffe0a0', emissiveMap: goldCloudTex, emissiveIntensity: 0.4 }), y: -6 },
 };

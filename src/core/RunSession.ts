@@ -2,7 +2,8 @@ import { CONFIG, laneX } from './config';
 import { DevilChase } from '../enemies/DevilChase';
 import { PlayerMotion, type Action } from '../player/PlayerMotion';
 import { ScoreManager } from '../systems/ScoreManager';
-import { TrackGenerator, type CoinData } from '../world/TrackGenerator';
+import { SinGrace, type MoralRecord } from '../systems/SinGrace';
+import { TrackGenerator, type CoinData, type PickupData } from '../world/TrackGenerator';
 import { devilGivesUpAt, groundHeight, JOURNEY_LENGTH, STAGES, stageAt, stageIndexAt, type StageDef } from '../world/journey';
 import { overlaps, resolveHit, type ObstacleData } from '../world/obstacles';
 
@@ -18,12 +19,19 @@ export type RunEvent =
   | { type: 'checkpoint' }
   | { type: 'levelComplete'; stage: StageDef; bonus: number }
   | { type: 'journeyComplete' }
+  | { type: 'soulHelped'; pickup: PickupData }
+  | { type: 'soulLost' }
+  | { type: 'temptationTaken'; pickup: PickupData; coins: number }
+  | { type: 'resisted' }
+  | { type: 'miracle'; pickup: PickupData }
+  | { type: 'shieldUsed' }
   | { type: 'end'; reason: EndReason };
 
 export interface RunStart {
   distance?: number; // start further along (checkpoint)
   coins?: number;
   bonus?: number; // score carried over from before the checkpoint
+  record?: MoralRecord; // Sin/Grace from before the checkpoint
 }
 
 /** Score bonus for finishing a heavenly level. */
@@ -41,6 +49,11 @@ export class RunSession {
   readonly score = new ScoreManager();
   obstacles: ObstacleData[] = [];
   coins: CoinData[] = [];
+  pickups: PickupData[] = [];
+  readonly moral: SinGrace;
+  /** Miracle Shield: absorbs one hit (Decisions log #18). */
+  shield = false;
+  private safeTimer = 0;
   speed: number = CONFIG.run.startSpeed;
   ended: EndReason | null = null;
   completed = false;
@@ -58,6 +71,7 @@ export class RunSession {
     this.score.coins = start.coins ?? 0;
     this.score.bonus = start.bonus ?? 0;
     this.gen = new TrackGenerator(seed, d);
+    this.moral = new SinGrace(start.record);
     this.stageIndex = stageIndexAt(d);
     if (d >= devilGivesUpAt()) {
       this.chaser = 'shadow';
@@ -113,13 +127,61 @@ export class RunSession {
     const made = this.gen.generate(this.distance + CONFIG.track.viewAhead, this.speed);
     if (made.obstacles.length) this.obstacles.push(...made.obstacles);
     if (made.coins.length) this.coins.push(...made.coins);
+    if (made.pickups.length) this.pickups.push(...made.pickups);
+    if (this.safeTimer > 0) this.safeTimer = Math.max(0, this.safeTimer - dt);
 
     this.checkObstacles();
     this.checkCoins();
+    this.checkPickups();
 
     const behind = this.distance - CONFIG.track.cleanupBehind;
     this.obstacles = this.obstacles.filter((o) => o.z + (o.length ?? 0) / 2 > behind);
     this.coins = this.coins.filter((c) => c.z > behind && !c.taken);
+    this.pickups = this.pickups.filter((p) => p.z > behind && !(p.taken && p.resolved));
+  }
+
+  /** Is the player shielded (halo) or briefly safe right after the shield broke? */
+  get protectedNow(): boolean {
+    return this.shield || this.safeTimer > 0;
+  }
+
+  private checkPickups(): void {
+    const m = this.motion;
+    const feet = this.ground + m.y;
+    const r2 = CONFIG.moral.pickupRadius ** 2;
+    for (const p of this.pickups) {
+      if (p.resolved) continue;
+      const dz = p.z - this.distance;
+      if (dz < -1.5) {
+        // passed it by
+        p.resolved = true;
+        if (p.kind === 'soul') {
+          this.moral.missSoul();
+          this.events.push({ type: 'soulLost' });
+        } else if (p.kind === 'temptation') {
+          this.moral.resist();
+          this.events.push({ type: 'resisted' });
+        }
+        continue;
+      }
+      if (dz > 2) continue;
+      const dx = m.x - laneX(p.lane);
+      const dy = groundHeight(p.z) + p.y + 0.9 - (feet + m.height * 0.5);
+      if (dx * dx + dz * dz + dy * dy * 0.3 >= r2) continue;
+      p.taken = p.resolved = true;
+      if (p.kind === 'soul') {
+        this.moral.helpSoul();
+        this.events.push({ type: 'soulHelped', pickup: p });
+      } else if (p.kind === 'temptation') {
+        this.moral.takeTemptation();
+        this.score.coins += CONFIG.moral.temptationCoins;
+        this.events.push({ type: 'temptationTaken', pickup: p, coins: CONFIG.moral.temptationCoins });
+      } else {
+        this.moral.miracle();
+        this.shield = true;
+        this.events.push({ type: 'miracle', pickup: p });
+      }
+    }
   }
 
   private checkProgress(): void {
@@ -160,6 +222,14 @@ export class RunSession {
       const box = { x: m.x, y: feet - groundHeight(o.z), z: this.distance, height: m.height };
       if (o.hit || !overlaps(box, o)) continue;
       o.hit = true;
+      // the Miracle Shield absorbs one hit of any kind, then you're safe for a moment
+      if (this.safeTimer > 0) continue;
+      if (this.shield) {
+        this.shield = false;
+        this.safeTimer = CONFIG.moral.shieldInvulnerable;
+        this.events.push({ type: 'shieldUsed' });
+        continue;
+      }
       const result = resolveHit(o, m.changingLane && o.lane === m.lane);
       if (result === 'crash' || result === 'fall') {
         this.devil.catchNow();
