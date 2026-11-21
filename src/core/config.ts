@@ -30,10 +30,11 @@ export const CONFIG = {
     depth: 0.6,
   },
   devil: {
-    startGap: 4, // how far behind the Devil starts (metres)
-    maxGap: 14, // the Devil never falls further back than this
+    // 3 stumbles close together = caught (Decisions log #15): 14 → 9 → 4 → caught
+    startGap: 6, // how far behind the chaser starts (metres)
+    maxGap: 14, // the chaser never falls further back than this
     recoverPerSecond: 1.6, // gap regained per second of clean running
-    stumblePenalty: 7.5, // gap lost on each stumble
+    stumblePenalty: 5, // gap lost on each stumble
     catchGap: 0, // gap at which the Devil catches you
   },
   track: {

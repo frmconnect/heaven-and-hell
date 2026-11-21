@@ -7,13 +7,14 @@ import { devilGivesUpAt, groundHeight, JOURNEY_LENGTH, STAGES, stageAt, stageInd
 import { overlaps, resolveHit, type ObstacleData } from '../world/obstacles';
 
 export type EndReason = 'crash' | 'fall' | 'caught';
+export type Chaser = 'devil' | 'shadow';
 
 export type RunEvent =
   | { type: 'coin'; coin: CoinData }
   | { type: 'stumble' }
   | { type: 'scrape' }
   | { type: 'stage'; stage: StageDef; from: StageDef }
-  | { type: 'devilGivesUp' }
+  | { type: 'devilGivesUp' } // the Devil falls back and the Shadow of your sins takes over
   | { type: 'checkpoint' }
   | { type: 'levelComplete'; stage: StageDef; bonus: number }
   | { type: 'journeyComplete' }
@@ -31,6 +32,7 @@ export const LEVEL_BONUS = 500;
 /**
  * The rules of one run, with no graphics: movement, speed, obstacles, coins, the Devil,
  * and progress through the journey (Hell → Stairway → Gate → heavenly levels → God).
+ * `devil` holds the chase distance for whoever is chasing (see `chaser`).
  * The 3D renderer just draws whatever this says.
  */
 export class RunSession {
@@ -42,7 +44,8 @@ export class RunSession {
   speed: number = CONFIG.run.startSpeed;
   ended: EndReason | null = null;
   completed = false;
-  devilActive = true;
+  /** Who is chasing you: the Devil (Hell, lower Stairway) or the Shadow of your sins (after that). */
+  chaser: Chaser = 'devil';
   time = 0;
   stageIndex: number;
   private gen: TrackGenerator;
@@ -57,8 +60,8 @@ export class RunSession {
     this.gen = new TrackGenerator(seed, d);
     this.stageIndex = stageIndexAt(d);
     if (d >= devilGivesUpAt()) {
-      this.devilActive = false;
-      this.devil.gap = 1e3;
+      this.chaser = 'shadow';
+      this.devil.gap = CONFIG.devil.maxGap;
     }
   }
 
@@ -102,7 +105,7 @@ export class RunSession {
     this.speed = base * mult;
     this.score.addDistance(this.speed * dt);
     this.motion.update(dt);
-    if (this.devilActive) this.devil.update(dt);
+    this.devil.update(dt);
 
     this.checkProgress();
     if (this.over) return;
@@ -121,9 +124,10 @@ export class RunSession {
 
   private checkProgress(): void {
     const d = this.distance;
-    if (this.devilActive && d >= devilGivesUpAt()) {
-      this.devilActive = false;
-      this.devil.gap = 1e3;
+    if (this.chaser === 'devil' && d >= devilGivesUpAt()) {
+      // the Shadow rises far behind you (Decisions log #14)
+      this.chaser = 'shadow';
+      this.devil.gap = CONFIG.devil.maxGap;
       this.events.push({ type: 'devilGivesUp' });
     }
     const idx = stageIndexAt(Math.min(d, JOURNEY_LENGTH - 0.01));
@@ -158,7 +162,7 @@ export class RunSession {
       o.hit = true;
       const result = resolveHit(o, m.changingLane && o.lane === m.lane);
       if (result === 'crash' || result === 'fall') {
-        if (this.devilActive) this.devil.catchNow();
+        this.devil.catchNow();
         return this.end(result);
       }
       if (result === 'scrape') {
@@ -167,8 +171,8 @@ export class RunSession {
       }
       this.events.push({ type: 'stumble' });
       this.stumbleTimer = CONFIG.run.stumbleRecoverTime;
-      // in Heaven the Devil is gone: a stumble only slows you down
-      if (this.devilActive && this.devil.stumble()) return this.end('caught');
+      // the Devil (or the Shadow) closes in; two stumbles close together and you're caught
+      if (this.devil.stumble()) return this.end('caught');
     }
   }
 

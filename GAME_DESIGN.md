@@ -10,11 +10,13 @@
 6. **Heavenly levels:** Launch with 2–3 heavenly levels; add more after release.
 7. **Leaderboards:** Start with local high scores. For online, consider Apple Game Center / Google Play Games Services before building a custom server.
 8. **Art for the prototype:** Stylized low-poly visuals built in code; real 3D models added later.
-9. **Collision rules (confirmed by owner after phone play-test):** Hitting a fire barrier or burning beam = stumble (you slow down and the Devil gains on you; two stumbles close together and he catches you). Running head-first into a rock wall = run over. Falling into lava = run over. Clipping a wall from the side while changing lanes = bounce back + stumble.
+9. **Collision rules (confirmed by owner after phone play-test):** Hitting a fire barrier or burning beam = stumble (you slow down and the Devil gains on you; **three stumbles close together** and he catches you — changed from two by the owner, see #15). Running head-first into a rock wall = run over. Falling into lava = run over. Clipping a wall from the side while changing lanes = bounce back + stumble.
 10. **Hell length:** About 2–3 minutes (~2,000 m) before the Stairway to Heaven appears. Tune through play-testing.
-11. **Devil on the Stairway:** He chases you up the first part of the stairs, then can't follow into the light and falls back with a roar. Big "I escaped!" moment.
+11. **Devil on the Stairway:** He chases you up the first part of the stairs, then can't follow into the light and falls back with a roar. Big "I escaped!" moment. (The Shadow of your sins then takes over — see #14.)
 12. **Checkpoint:** Reaching Heaven's Gate is a checkpoint. Crashing after the Gate restarts you at the Gate. Only failing judgment sends you back to Hell (Decision #3).
 13. **Falling through a stair gap:** A dramatic fall with Hell visible below, then the run is over (same as falling into lava).
+14. **The Shadow of your sins (owner's choice after play-testing the Stairway):** When the Devil gives up on the Stairway, a dark ghostly spirit made of your sins rises and takes over the chase right away, through the rest of the Stairway, the Gate and all heavenly levels. Same rules as the Devil: stumbles let it close in, three stumbles close together and it catches you (run over, see #15). In Phase 3 it can grow stronger the more Sin you carry.
+15. **Stumble rule, same everywhere (owner):** 3 stumbles close together ends the run, in every stage. Running clean for a few seconds lets the chaser drop back again, so it's never impossible to recover. In Hell the Devil grabs you; from the Stairway on, the Shadow grabs you, the floor crumbles and you fall away toward Hell.
 
 ---
 

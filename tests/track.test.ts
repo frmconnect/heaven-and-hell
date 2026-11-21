@@ -98,10 +98,11 @@ describe('a robot can survive the course (it is always fair)', () => {
     }
     expect(failures).toEqual([]);
   });
-  it('restarting from the Heaven\'s Gate checkpoint starts in the Gardens with no Devil', () => {
+  it('restarting from the Heaven\'s Gate checkpoint: the Shadow chases you, starting far back', () => {
     const s = new RunSession(3, { distance: stageStart('gardens'), coins: 40 });
     expect(s.stage.id).toBe('gardens');
-    expect(s.devilActive).toBe(false);
+    expect(s.chaser).toBe('shadow');
+    expect(s.devil.gap).toBe(CONFIG.devil.maxGap);
     expect(s.score.coins).toBe(40);
     play(s, stageStart('gardens') + 300);
     expect(s.ended).toBeNull();
@@ -118,12 +119,34 @@ describe('a robot can survive the course (it is always fair)', () => {
     expect(s.ended).not.toBeNull();
     expect(s.distance).toBeLessThan(400);
   });
-  it('in Heaven a stumble only slows you down (the Devil is gone)', () => {
+  it('in Heaven the Shadow follows the same rule: 3 stumbles close together and it catches you', () => {
     const s = new RunSession(8, { distance: stageStart('gardens') });
     s.obstacles.push({ id: 999, kind: 'low', lane: 1, z: s.distance + 1, hit: false, theme: 'gardens' });
     s.update(1 / 60);
     s.update(1 / 60);
     expect(s.ended).toBeNull();
     expect(s.speed).toBeLessThan(CONFIG.run.maxSpeed);
+    s.obstacles.push({ id: 1000, kind: 'high', lane: 1, z: s.distance + 1, hit: false, theme: 'gardens' });
+    s.update(1 / 60);
+    s.update(1 / 60);
+    expect(s.ended).toBeNull();
+    s.obstacles.push({ id: 1001, kind: 'low', lane: 1, z: s.distance + 1, hit: false, theme: 'gardens' });
+    s.update(1 / 60);
+    s.update(1 / 60);
+    expect(s.ended).toBe('caught');
+    expect(s.chaser).toBe('shadow');
+  });
+  it('the chase never stops: the Shadow takes over the moment the Devil gives up', () => {
+    const s = new RunSession(2, { distance: stageStart('stairway') + 640 });
+    expect(s.chaser).toBe('devil');
+    let gaveUp = false;
+    while (s.distance < stageStart('stairway') + 700 && !s.over) {
+      s.obstacles = [];
+      s.update(1 / 60);
+      for (const e of s.drainEvents()) if (e.type === 'devilGivesUp') gaveUp = true;
+    }
+    expect(gaveUp).toBe(true);
+    expect(s.chaser).toBe('shadow');
+    expect(s.devil.gap).toBeGreaterThan(CONFIG.devil.stumblePenalty);
   });
 });

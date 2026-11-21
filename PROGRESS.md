@@ -8,7 +8,7 @@ Add `?stage=` to the play link to start right at a stage, e.g.
 https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gate, bridges, kingdom).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built and tested by Claude; waiting for the owner's phone play-test.**
+Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built; owner play-tested up to the Stairway**, asked for a chaser in Heaven and a 3-stumble rule (both built). Waiting for more play-testing.
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -34,7 +34,9 @@ Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built and tested by Cl
 ## Phase 2 (built)
 - Journey map (`src/world/journey.ts`): Hell 2,000 m → Stairway 2,000 m → Heaven's Gate → 3 heavenly levels of 2,500 m each → God. About 9 minutes for a good run; all lengths tunable.
 - Stairway to Heaven: real climbing marble steps with gold railings, columns, angel statues, clouds; Hell's lava drops away below you
-- Devil chases you 650 m up the stairs, then falls back ("YOU ESCAPED!")
+- Devil chases you 650 m up the stairs, then falls back ("YOU ESCAPED THE DEVIL")
+- **The Shadow of your sins** takes over the chase right away (owner's idea after play-testing): dark hooded spirit with violet eyes, chases through the rest of the Stairway and all of Heaven; HUD meter says "YOUR SINS" (Decisions log #14)
+- **Stumble rule, same everywhere:** 3 stumbles close together = caught; running clean lets the chaser drop back. From the Stairway on, the Shadow drags you down and the floor crumbles (Decisions log #15)
 - Stair gaps (you can see Hell's glow through them); falling through = run over
 - Heaven's Gate: giant pearly gates that swing open with light pouring out, white flash as you pass through
 - Checkpoint at Heaven's Gate: crash in Heaven → "TRY AGAIN from Heaven's Gate"; menu shows CONTINUE; remembered after closing the game
@@ -46,7 +48,7 @@ Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built and tested by Cl
 - Reaching the end shows "You have reached God" (placeholder until judgment in Phase 3)
 
 ## How it was tested
-- 37 automatic tests (`npm test`): state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
+- 39 automatic tests (`npm test`), incl. the 3-stumble rule and the Devil→Shadow hand-over: state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
 - Robot player test: survives Hell + Stairway on 30 random courses, and completes the WHOLE journey to God on 15 random courses with every stage, level bonus and checkpoint firing in order
 - Browser flow test: teleported through every stage in a phone-sized browser; checked game states, the Devil giving up, checkpoint save, TRY AGAIN from the Gate, God screen, and CONTINUE after reloading
 - Played in a headless phone-sized browser (Pixel 7, iPhone 13 sizes): real swipe events, jump, coins, stumble, crash, game over, run again, pause, resume — no errors
@@ -80,8 +82,7 @@ Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built and tested by Cl
 - FIXED: a long swipe from an outer lane jumped two lanes to the far side. Now each swipe moves exactly one lane (found by the owner on their phone).
 - No sound yet (planned for later; must be original or licensed)
 
-- When the Devil is right on your heels he partly hides the player (only just before he catches you).
-- In Heaven a stumble only slows you down (no Devil) — see open decisions.
+- When the Devil or the Shadow is right on your heels it partly hides the player (only just before it catches you).
 
 ## Technical decisions
 - Web-first with Three.js so Claude can build and test everything end to end and the owner can play each version on a phone. Package with Capacitor for Android/iOS later.
@@ -90,7 +91,7 @@ Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built and tested by Cl
 - Obstacles are pooled and coins are drawn in one batch, for phone performance.
 - **Collision rules (confirmed by owner — Decisions log #9):**
   - Hitting a fire barrier or burning beam = stumble: you slow down briefly and the Devil gains on you.
-  - Two stumbles close together = the Devil catches you.
+  - Three stumbles close together = the Devil (or the Shadow) catches you (changed from two by the owner — Decisions log #15).
   - Running head-first into a rock wall = crash, run over.
   - Clipping a wall from the side while changing lanes = bounce back + stumble.
   - Lava pit = you fall in, run over.
@@ -98,7 +99,6 @@ Phase 1 — **Complete**. Phase 2 — Heaven ascension: **built and tested by Cl
 - Backup play link: `scripts/make-single-file.mjs` packs the build into one file, published as a private claude.ai page.
 
 ## Open design decisions
-- **Stumbles in Heaven:** with the Devil gone, hitting a barrier only slows you. Should there be another penalty (e.g. 3 stumbles close together = you fall)? Recommend deciding after play-testing.
 - **Journey length:** currently ~9 minutes for a good run (target 10–15). Tune after play-testing.
 - Final game name (working title "Heaven & Hell")
 - Exactly how runs vary after a failed judgment (see Decisions log in GAME_DESIGN.md)

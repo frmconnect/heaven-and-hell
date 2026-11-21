@@ -1,4 +1,4 @@
-import type { EndReason } from '../core/RunSession';
+import type { Chaser, EndReason } from '../core/RunSession';
 
 export interface ScreenHandlers {
   onPlay: () => void; // new journey from Hell
@@ -9,6 +9,7 @@ export interface ScreenHandlers {
 
 export interface GameOverInfo {
   reason: EndReason;
+  chaser: Chaser;
   inHeaven: boolean;
   score: number;
   distance: number;
@@ -18,8 +19,8 @@ export interface GameOverInfo {
   canContinue: boolean; // crashed after Heaven's Gate
 }
 
-function reasonText(reason: EndReason, inHeaven: boolean): string {
-  if (reason === 'caught') return 'The Devil caught you!';
+function reasonText(reason: EndReason, inHeaven: boolean, chaser: Chaser): string {
+  if (reason === 'caught') return chaser === 'shadow' ? 'Your sins dragged you down!' : 'The Devil caught you!';
   if (reason === 'crash') return 'You crashed!';
   return inHeaven ? 'You fell back toward Hell!' : 'You fell into the lava!';
 }
@@ -39,7 +40,7 @@ export class Screens {
       <div class="sub" data-continue-note style="margin-top:8px">from Heaven's Gate</div>
       <button class="big-btn" data-play>RUN</button>
       <div class="best" data-best></div>
-      <div class="how">Swipe ← → to change lanes<br/>Swipe ↑ to jump · Swipe ↓ to slide<br/>Escape the Devil and climb to Heaven</div>`);
+      <div class="how">Swipe ← → to change lanes<br/>Swipe ↑ to jump · Swipe ↓ to slide<br/>3 stumbles close together and you're caught<br/>Escape the Devil and climb to Heaven</div>`);
     this.pause = this.make(root, `
       <div class="go-reason">Paused</div>
       <button class="big-btn" data-resume>RESUME</button>
@@ -117,7 +118,7 @@ export class Screens {
   showGameOver(i: GameOverInfo): void {
     this.hideAll();
     this.over.classList.toggle('heaven', i.inHeaven);
-    this.q(this.over, '[data-reason]').textContent = reasonText(i.reason, i.inHeaven);
+    this.q(this.over, '[data-reason]').textContent = reasonText(i.reason, i.inHeaven, i.chaser);
     this.q(this.over, '[data-s]').textContent = String(i.score);
     this.q(this.over, '[data-d]').textContent = `${Math.floor(i.distance)} m`;
     this.q(this.over, '[data-c]').textContent = String(i.coins);

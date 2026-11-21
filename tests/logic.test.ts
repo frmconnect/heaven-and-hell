@@ -148,16 +148,25 @@ describe('DevilChase', () => {
     d.update(100);
     expect(d.gap).toBe(CONFIG.devil.maxGap);
   });
-  it('catches you if you stumble while he is close', () => {
+  it('catches you if you keep stumbling while he is close (start of a run)', () => {
     const d = new DevilChase();
+    expect(d.stumble()).toBe(false);
     expect(d.stumble()).toBe(true);
     expect(d.caught).toBe(true);
   });
-  it('one stumble at full distance is survivable, two in a row is not', () => {
+  it('3 stumbles close together = caught; two are survivable (Decisions log #15)', () => {
     const d = new DevilChase();
     d.update(100);
     expect(d.stumble()).toBe(false);
+    expect(d.stumble()).toBe(false);
     expect(d.stumble()).toBe(true);
+  });
+  it('running clean lets him drop back, so spread-out stumbles never add up', () => {
+    const d = new DevilChase();
+    for (let i = 0; i < 10; i++) {
+      d.update(100);
+      expect(d.stumble()).toBe(false);
+    }
   });
 });
 

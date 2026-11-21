@@ -77,15 +77,21 @@ export class HUD {
     this.stageEl.textContent = name.toUpperCase();
   }
 
-  update(dt: number, score: number, distance: number, coins: number, danger: number, devilActive: boolean, progress: number): void {
+  /** Name on the chase meter: THE DEVIL, or YOUR SINS once the Shadow takes over. */
+  setChaser(label: string): void {
+    (this.devilEl.firstChild as Text).textContent = label;
+    this.devilEl.classList.toggle('shadow', label !== 'THE DEVIL');
+  }
+
+  update(dt: number, score: number, distance: number, coins: number, danger: number, progress: number): void {
     this.scoreEl.textContent = String(score);
     this.distEl.textContent = `${Math.floor(distance)} m`;
     this.coinsEl.textContent = String(coins);
-    this.devilEl.style.display = devilActive ? '' : 'none';
     this.devilFill.style.width = `${Math.round(danger * 100)}%`;
-    this.devilEl.classList.toggle('danger', devilActive && danger > 0.55);
-    const v = devilActive ? Math.max(0, (danger - 0.45) / 0.55) : 0;
-    this.vignette.style.boxShadow = `inset 0 0 120px 40px rgba(255,0,0,${(v * 0.55).toFixed(2)})`;
+    this.devilEl.classList.toggle('danger', danger > 0.55);
+    const v = Math.max(0, (danger - 0.45) / 0.55);
+    const shadow = this.devilEl.classList.contains('shadow');
+    this.vignette.style.boxShadow = `inset 0 0 120px 40px rgba(${shadow ? '70,0,120' : '255,0,0'},${(v * 0.55).toFixed(2)})`;
     const pct = `${(progress * 100).toFixed(1)}%`;
     this.journeyFill.style.width = pct;
     this.journeyMark.style.left = pct;

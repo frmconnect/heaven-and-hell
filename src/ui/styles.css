@@ -78,3 +78,8 @@ html, body {
 .screen.heaven .go-reason { color: #fff; text-shadow: 0 0 16px #ffcf5a; }
 .god-title { font-size: clamp(30px, 9vw, 46px); font-weight: 900; color: #fff; text-shadow: 0 0 24px #ffd27a, 0 0 4px #fff; }
 .god-text { margin-top: 14px; max-width: 320px; font-size: 16px; line-height: 1.5; opacity: .95; }
+
+/* Shadow of your sins meter */
+.devil-meter.shadow { color: #e2c8ff; }
+.devil-meter.shadow .devil-bar { border-color: rgba(190,140,255,.6); }
+.devil-meter.shadow .devil-fill { background: linear-gradient(90deg, #9a6aff, #3a0a6a); }

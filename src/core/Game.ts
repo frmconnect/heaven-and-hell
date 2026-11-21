@@ -3,12 +3,15 @@ import { CONFIG } from './config';
 import { GameState, GameStateManager } from './GameStateManager';
 import { RunSession, type RunStart } from './RunSession';
 import { DevilAvatar } from '../enemies/DevilAvatar';
+import { ShadowAvatar } from '../enemies/ShadowAvatar';
 import { InputController } from '../input/InputController';
 import { PlayerAvatar } from '../player/PlayerAvatar';
 import { SaveData } from '../systems/SaveData';
 import { HUD } from '../ui/HUD';
 import { Screens } from '../ui/Screens';
 import { CoinRenderer } from '../world/CoinRenderer';
+import { Crumble } from '../world/Crumble';
+import { MATERIALS } from '../world/decor';
 import { Environment } from '../world/Environment';
 import { GATE_Z } from '../world/GateSet';
 import { groundHeight, journeyProgress, STAGES, stageStart, type ThemeId } from '../world/journey';
@@ -29,6 +32,8 @@ export class Game {
   private coins: CoinRenderer;
   private player: PlayerAvatar;
   private devil: DevilAvatar;
+  private shadow: ShadowAvatar;
+  private crumble: Crumble;
   private hud: HUD;
   private screens: Screens;
   private session: RunSession;
@@ -51,6 +56,8 @@ export class Game {
     this.coins = new CoinRenderer(this.scene);
     this.player = new PlayerAvatar(this.scene);
     this.devil = new DevilAvatar(this.scene);
+    this.shadow = new ShadowAvatar(this.scene);
+    this.crumble = new Crumble(this.scene);
     this.session = new RunSession(1);
 
     this.hud = new HUD(uiRoot, () => this.pause());
@@ -98,8 +105,10 @@ export class Game {
     // new seed every run, so the course is never the same twice
     this.session = new RunSession((Date.now() ^ (Math.random() * 1e9)) >>> 0, begin);
     this.player.reset();
+    this.crumble.stop();
     this.endTimer = 0;
     this.gateFlashed = d > GATE_Z;
+    this.hud.setChaser(this.session.chaser === 'shadow' ? 'YOUR SINS' : 'THE DEVIL');
     this.screens.hideAll();
     this.state.go(target);
     this.runCount++;
@@ -129,6 +138,7 @@ export class Game {
     if (this.state.go(GameState.MainMenu)) {
       this.session = new RunSession(1);
       this.player.reset();
+      this.crumble.stop();
       this.showMenu();
     }
   }
@@ -166,17 +176,26 @@ export class Game {
           this.player.stumble();
           this.shake = 0.35;
           navigator.vibrate?.(60);
-          if (!s.ended) this.hud.toast(s.devilActive && s.devil.danger > 0.6 ? 'HE IS CLOSE!' : 'STUMBLE!', 0.8);
+          if (!s.ended) {
+            const close = s.devil.danger > 0.6;
+            this.hud.toast(close ? (s.chaser === 'shadow' ? 'YOUR SINS ARE CLOSE!' : 'HE IS CLOSE!') : 'STUMBLE!', 0.8);
+          }
           break;
         case 'end':
           this.shake = 0.6;
           navigator.vibrate?.([80, 40, 160]);
           this.endTimer = END_DELAY;
+          // from the Stairway on, the Shadow drags you down and the floor gives way (Decisions log #15)
+          if (e.reason === 'caught' && s.chaser === 'shadow') {
+            this.endTimer = END_DELAY + 0.5;
+            this.crumble.start(s.motion.x, this.floorMaterial());
+          }
           break;
         case 'devilGivesUp':
           this.shake = 0.8;
           navigator.vibrate?.([40, 30, 40]);
-          this.hud.toast('YOU ESCAPED!', 2.6, "The Devil can't follow you into the light");
+          this.hud.toast('YOU ESCAPED THE DEVIL', 2.8, 'But your sins still follow you…');
+          this.hud.setChaser('YOUR SINS');
           break;
         case 'stage':
           this.hud.setStage(e.stage.name);
@@ -226,10 +245,15 @@ export class Game {
     this.renderer.toneMappingExposure = this.env.exposure;
     this.obstacles.sync(s.obstacles, s.distance, vdt);
     this.coins.sync(s.coins, s.distance, vdt);
-    this.player.update(vdt, s.motion, running ? s.speed : 0, s.ended);
-    this.devil.update(vdt, s.devil.gap, s.motion.x, s.devil.caught, (dz) => groundHeight(s.distance - dz) - g0);
+    const shadowCaught = s.ended === 'caught' && s.chaser === 'shadow';
+    this.player.update(vdt, s.motion, running ? s.speed : 0, shadowCaught ? 'fall' : s.ended);
+    const groundAt = (dz: number) => groundHeight(s.distance - dz) - g0;
+    const devilChasing = s.chaser === 'devil';
+    this.devil.update(vdt, devilChasing ? s.devil.gap : 1e3, s.motion.x, devilChasing && s.devil.caught, groundAt);
+    this.shadow.update(vdt, !devilChasing, s.devil.gap, s.motion.x, shadowCaught, groundAt);
+    this.crumble.update(vdt);
     if (running || paused) {
-      this.hud.update(vdt, s.score.score, s.distance, s.score.coins, s.devil.danger, s.devilActive, journeyProgress(s.distance));
+      this.hud.update(vdt, s.score.score, s.distance, s.score.coins, s.devil.danger, journeyProgress(s.distance));
     }
 
     // follow camera (looks up the stairs as you climb)
@@ -244,6 +268,16 @@ export class Game {
     );
     this.camera.lookAt(this.camX * 0.6, 1.2 + ahead * 0.75 + s.motion.y * 0.2, -CONFIG.camera.lookAhead);
     this.renderer.render(this.scene, this.camera);
+  }
+
+  /** The floor material of the current world (for the crumbling pieces). */
+  private floorMaterial(): THREE.Material {
+    switch (this.session.stage.id) {
+      case 'gardens': return MATERIALS.garden;
+      case 'bridges': return MATERIALS.bridge;
+      case 'kingdom': return MATERIALS.goldTiles;
+      default: return MATERIALS.marble;
+    }
   }
 
   private finishRun(): void {
@@ -261,6 +295,7 @@ export class Game {
     this.state.go(GameState.GameOver);
     this.screens.showGameOver({
       reason: s.ended,
+      chaser: s.chaser,
       inHeaven: s.stage.id !== 'hell',
       score: s.score.score,
       distance: s.distance,
