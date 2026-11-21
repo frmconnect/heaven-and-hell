@@ -1,12 +1,14 @@
 import { CONFIG, laneX } from '../core/config';
+import type { ThemeId } from './journey';
 
 /**
  * low  = fiery barrier you must JUMP over
  * high = burning beam you must SLIDE under
  * wall = solid rock you must go AROUND (change lane)
- * lava = lava pit you must JUMP across (falling in ends the run)
+ * pit  = lava pit (Hell) or gap into the void (Heaven) you must JUMP across or avoid (falling in ends the run)
+ * The kind decides how it plays; the theme decides how it looks.
  */
-export type ObstacleKind = 'low' | 'high' | 'wall' | 'lava';
+export type ObstacleKind = 'low' | 'high' | 'wall' | 'pit';
 
 export interface ObstacleShape {
   width: number;
@@ -19,7 +21,7 @@ export const SHAPES: Record<ObstacleKind, ObstacleShape> = {
   low: { width: 1.9, length: 0.6, bottom: 0, top: 0.8 },
   high: { width: 1.9, length: 0.6, bottom: 1.25, top: 3.2 },
   wall: { width: 1.9, length: 1.8, bottom: 0, top: 3.4 },
-  lava: { width: 2.0, length: 3.2, bottom: -1, top: 0.12 },
+  pit: { width: 2.0, length: 3.2, bottom: -1, top: 0.12 },
 };
 
 export interface ObstacleData {
@@ -28,11 +30,15 @@ export interface ObstacleData {
   lane: number;
   z: number; // distance along the track (centre)
   hit: boolean;
+  theme: ThemeId;
+  length?: number; // overrides the default length (long gaps on the bridges)
 }
+
+export const lengthOf = (o: ObstacleData): number => o.length ?? SHAPES[o.kind].length;
 
 export interface PlayerBox {
   x: number;
-  y: number; // feet height
+  y: number; // feet height, measured from the obstacle's own ground
   z: number; // distance along the track
   height: number;
 }
@@ -43,7 +49,7 @@ export function overlaps(p: PlayerBox, o: ObstacleData): boolean {
   const pw = CONFIG.player.width / 2;
   const pd = CONFIG.player.depth / 2;
   if (Math.abs(p.x - laneX(o.lane)) >= pw + s.width / 2) return false;
-  if (Math.abs(p.z - o.z) >= pd + s.length / 2) return false;
+  if (Math.abs(p.z - o.z) >= pd + lengthOf(o) / 2) return false;
   return p.y < s.top && p.y + p.height > s.bottom;
 }
 
@@ -54,7 +60,7 @@ export type HitResult = 'none' | 'stumble' | 'scrape' | 'crash' | 'fall';
  * - low/high barriers: you stumble through them (the Devil gains on you)
  * - wall from the side while changing lanes: you bounce back and stumble
  * - wall head-on: crash, the Devil gets you
- * - lava: you fall in
+ * - pit: you fall in
  */
 export function resolveHit(o: ObstacleData, changingLaneInto: boolean): HitResult {
   switch (o.kind) {
@@ -63,7 +69,7 @@ export function resolveHit(o: ObstacleData, changingLaneInto: boolean): HitResul
       return 'stumble';
     case 'wall':
       return changingLaneInto ? 'scrape' : 'crash';
-    case 'lava':
+    case 'pit':
       return 'fall';
   }
 }

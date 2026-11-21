@@ -3,6 +3,7 @@ import { DevilChase } from '../enemies/DevilChase';
 import { PlayerMotion, type Action } from '../player/PlayerMotion';
 import { ScoreManager } from '../systems/ScoreManager';
 import { TrackGenerator, type CoinData } from '../world/TrackGenerator';
+import { devilGivesUpAt, groundHeight, JOURNEY_LENGTH, STAGES, stageAt, stageIndexAt, type StageDef } from '../world/journey';
 import { overlaps, resolveHit, type ObstacleData } from '../world/obstacles';
 
 export type EndReason = 'crash' | 'fall' | 'caught';
@@ -11,10 +12,25 @@ export type RunEvent =
   | { type: 'coin'; coin: CoinData }
   | { type: 'stumble' }
   | { type: 'scrape' }
+  | { type: 'stage'; stage: StageDef; from: StageDef }
+  | { type: 'devilGivesUp' }
+  | { type: 'checkpoint' }
+  | { type: 'levelComplete'; stage: StageDef; bonus: number }
+  | { type: 'journeyComplete' }
   | { type: 'end'; reason: EndReason };
 
+export interface RunStart {
+  distance?: number; // start further along (checkpoint)
+  coins?: number;
+  bonus?: number; // score carried over from before the checkpoint
+}
+
+/** Score bonus for finishing a heavenly level. */
+export const LEVEL_BONUS = 500;
+
 /**
- * The rules of one run, with no graphics: movement, speed, obstacles, coins, the Devil.
+ * The rules of one run, with no graphics: movement, speed, obstacles, coins, the Devil,
+ * and progress through the journey (Hell → Stairway → Gate → heavenly levels → God).
  * The 3D renderer just draws whatever this says.
  */
 export class RunSession {
@@ -25,24 +41,47 @@ export class RunSession {
   coins: CoinData[] = [];
   speed: number = CONFIG.run.startSpeed;
   ended: EndReason | null = null;
+  completed = false;
+  devilActive = true;
   time = 0;
+  stageIndex: number;
   private gen: TrackGenerator;
   private stumbleTimer = 0;
   private events: RunEvent[] = [];
 
-  constructor(readonly seed: number) {
-    this.gen = new TrackGenerator(seed);
+  constructor(readonly seed: number, start: RunStart = {}) {
+    const d = start.distance ?? 0;
+    this.score.distance = d;
+    this.score.coins = start.coins ?? 0;
+    this.score.bonus = start.bonus ?? 0;
+    this.gen = new TrackGenerator(seed, d);
+    this.stageIndex = stageIndexAt(d);
+    if (d >= devilGivesUpAt()) {
+      this.devilActive = false;
+      this.devil.gap = 1e3;
+    }
   }
 
   get distance(): number {
     return this.score.distance;
   }
-
-  act(a: Action): void {
-    if (!this.ended) this.motion.apply(a);
+  get stage(): StageDef {
+    return stageAt(this.distance);
+  }
+  /** Height of the ground under the player (the stairs climb). */
+  get ground(): number {
+    return groundHeight(this.distance);
+  }
+  /** Is the run finished in any way (crashed or reached God)? */
+  get over(): boolean {
+    return this.ended !== null || this.completed;
   }
 
-  /** Events since the last call (coins picked up, stumbles, end of run). */
+  act(a: Action): void {
+    if (!this.over) this.motion.apply(a);
+  }
+
+  /** Events since the last call (coins picked up, stumbles, stage changes, end of run). */
   drainEvents(): RunEvent[] {
     const e = this.events;
     this.events = [];
@@ -50,7 +89,7 @@ export class RunSession {
   }
 
   update(dt: number): void {
-    if (this.ended) return;
+    if (this.over) return;
     this.time += dt;
 
     const base = Math.min(CONFIG.run.maxSpeed, CONFIG.run.startSpeed + CONFIG.run.speedGainPerMetre * this.distance);
@@ -63,7 +102,10 @@ export class RunSession {
     this.speed = base * mult;
     this.score.addDistance(this.speed * dt);
     this.motion.update(dt);
-    this.devil.update(dt);
+    if (this.devilActive) this.devil.update(dt);
+
+    this.checkProgress();
+    if (this.over) return;
 
     const made = this.gen.generate(this.distance + CONFIG.track.viewAhead, this.speed);
     if (made.obstacles.length) this.obstacles.push(...made.obstacles);
@@ -73,19 +115,50 @@ export class RunSession {
     this.checkCoins();
 
     const behind = this.distance - CONFIG.track.cleanupBehind;
-    this.obstacles = this.obstacles.filter((o) => o.z > behind);
+    this.obstacles = this.obstacles.filter((o) => o.z + (o.length ?? 0) / 2 > behind);
     this.coins = this.coins.filter((c) => c.z > behind && !c.taken);
+  }
+
+  private checkProgress(): void {
+    const d = this.distance;
+    if (this.devilActive && d >= devilGivesUpAt()) {
+      this.devilActive = false;
+      this.devil.gap = 1e3;
+      this.events.push({ type: 'devilGivesUp' });
+    }
+    const idx = stageIndexAt(Math.min(d, JOURNEY_LENGTH - 0.01));
+    while (this.stageIndex < idx) {
+      const prev = stageAtIndex(this.stageIndex);
+      this.stageIndex++;
+      const next = stageAtIndex(this.stageIndex);
+      if (prev.level) this.finishLevel(prev);
+      if (next.id === 'gardens') this.events.push({ type: 'checkpoint' });
+      this.events.push({ type: 'stage', stage: next, from: prev });
+    }
+    if (d >= JOURNEY_LENGTH) {
+      const last = stageAtIndex(this.stageIndex);
+      if (last.level) this.finishLevel(last);
+      this.completed = true;
+      this.events.push({ type: 'journeyComplete' });
+    }
+  }
+
+  private finishLevel(stage: StageDef): void {
+    this.score.bonus += LEVEL_BONUS;
+    this.events.push({ type: 'levelComplete', stage, bonus: LEVEL_BONUS });
   }
 
   private checkObstacles(): void {
     const m = this.motion;
-    const box = { x: m.x, y: m.y, z: this.distance, height: m.height };
+    const feet = this.ground + m.y;
     for (const o of this.obstacles) {
+      // measure the player's height from the obstacle's own ground (matters on the stairs)
+      const box = { x: m.x, y: feet - groundHeight(o.z), z: this.distance, height: m.height };
       if (o.hit || !overlaps(box, o)) continue;
       o.hit = true;
       const result = resolveHit(o, m.changingLane && o.lane === m.lane);
       if (result === 'crash' || result === 'fall') {
-        this.devil.catchNow();
+        if (this.devilActive) this.devil.catchNow();
         return this.end(result);
       }
       if (result === 'scrape') {
@@ -94,19 +167,21 @@ export class RunSession {
       }
       this.events.push({ type: 'stumble' });
       this.stumbleTimer = CONFIG.run.stumbleRecoverTime;
-      if (this.devil.stumble()) return this.end('caught');
+      // in Heaven the Devil is gone: a stumble only slows you down
+      if (this.devilActive && this.devil.stumble()) return this.end('caught');
     }
   }
 
   private checkCoins(): void {
     const m = this.motion;
     const r2 = CONFIG.coins.pickupRadius ** 2;
+    const feet = this.ground + m.y;
     for (const c of this.coins) {
       if (c.taken) continue;
       const dz = c.z - this.distance;
       if (dz > 2 || dz < -2) continue;
       const dx = m.x - laneX(c.lane);
-      const dy = c.y - (m.y + m.height * 0.5);
+      const dy = groundHeight(c.z) + c.y - (feet + m.height * 0.5);
       if (dx * dx + dy * dy + dz * dz < r2 * 1.6) {
         c.taken = true;
         this.score.addCoin();
@@ -120,3 +195,5 @@ export class RunSession {
     this.events.push({ type: 'end', reason });
   }
 }
+
+const stageAtIndex = (i: number): StageDef => STAGES[i];

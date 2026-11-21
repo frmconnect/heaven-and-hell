@@ -9,7 +9,7 @@ import { SHAPES, type ObstacleData, type ObstacleKind } from './obstacles';
  */
 export class ObstacleRenderer {
   readonly group = new THREE.Group();
-  private pools: Record<ObstacleKind, THREE.Object3D[]> = { low: [], high: [], wall: [], lava: [] };
+  private pools: Record<ObstacleKind, THREE.Object3D[]> = { low: [], high: [], wall: [], pit: [] };
   private active = new Map<number, { kind: ObstacleKind; obj: THREE.Object3D }>();
   private mats = {
     stone: new THREE.MeshStandardMaterial({ color: '#4a2a24', roughness: 0.9, flatShading: true }),

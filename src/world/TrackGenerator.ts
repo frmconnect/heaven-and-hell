@@ -1,16 +1,17 @@
 import { CONFIG } from '../core/config';
 import { Rng } from '../core/rng';
+import { difficultyAt, JOURNEY_LENGTH, obstaclesAllowed, stageAt, type ThemeId } from './journey';
 import type { ObstacleData, ObstacleKind } from './obstacles';
 
 export interface CoinData {
   id: number;
   lane: number;
   z: number;
-  y: number;
+  y: number; // height above the coin's own ground
   taken: boolean;
 }
 
-const K: Record<string, ObstacleKind | null> = { ' ': null, L: 'low', H: 'high', W: 'wall', V: 'lava' };
+const K: Record<string, ObstacleKind | null> = { ' ': null, L: 'low', H: 'high', W: 'wall', V: 'pit' };
 
 /** Obstacle rows, one character per lane. Grouped by difficulty tier. Every row leaves at least one lane without a wall. */
 export const PATTERNS: string[][] = [
@@ -19,13 +20,15 @@ export const PATTERNS: string[][] = [
   ['WWL', 'LWW', 'WHW', 'WVW', 'HWH', 'VWV', 'WWH', 'HWW', 'VLV', 'WWV', 'VWW'],
 ];
 
-/** 0 at the start, rising to 1 as the run goes on. */
-export function difficultyAt(distance: number): number {
-  return Math.min(1, Math.max(0, (distance - CONFIG.track.safeStart) / 1500));
-}
+/** The Stairway has extra broken-step gaps (Decisions log #13). */
+const STAIR_EXTRA = ['V  ', ' V ', '  V', 'VV ', ' VV', 'V V', 'VVV'];
+
+export { difficultyAt };
 
 /**
  * Builds the course ahead of the player: rows of obstacles and trails of coins.
+ * It follows the journey map: each stage has its own mix, quiet stretches near stage changes,
+ * and nothing after the end of the journey.
  * Uses a seed, so each run is different (Decisions log #3) but tests are repeatable.
  */
 export class TrackGenerator {
@@ -33,39 +36,46 @@ export class TrackGenerator {
   private nextRowZ: number;
   private nextId = 1;
 
-  constructor(seed: number) {
+  constructor(seed: number, startZ = 0) {
     this.rng = new Rng(seed);
-    this.nextRowZ = CONFIG.track.safeStart;
+    this.nextRowZ = startZ + CONFIG.track.safeStart;
   }
 
   /** Create everything up to `untilZ`. Call every frame; it only adds what's missing. */
   generate(untilZ: number, speed: number): { obstacles: ObstacleData[]; coins: CoinData[] } {
     const obstacles: ObstacleData[] = [];
     const coins: CoinData[] = [];
-    while (this.nextRowZ < untilZ) {
+    const limit = Math.min(untilZ, JOURNEY_LENGTH);
+    while (this.nextRowZ < limit) {
       const z = this.nextRowZ;
-      const row = this.pickPattern(difficultyAt(z));
+      if (!obstaclesAllowed(z)) {
+        // quiet stretch: just a few coins down the middle
+        if (this.rng.chance(0.25)) for (let k = 0; k < 5; k++) coins.push(this.coin(1, z + k * CONFIG.coins.spacing, 1));
+        this.nextRowZ += 12;
+        continue;
+      }
+      const stage = stageAt(z);
+      const gap = this.rowGap(z, speed);
+      if (stage.id === 'bridges' && this.rng.chance(0.28)) {
+        this.nextRowZ += this.narrowPath(z, gap, obstacles, coins);
+        continue;
+      }
+      const row = this.pickPattern(difficultyAt(z), stage.id);
       const freeLanes: number[] = [];
       for (let lane = 0; lane < 3; lane++) {
         const kind = K[row[lane]];
-        if (kind) obstacles.push({ id: this.nextId++, kind, lane, z, hit: false });
+        if (kind) obstacles.push({ id: this.nextId++, kind, lane, z, hit: false, theme: stage.id });
         if (row[lane] !== 'W') freeLanes.push(lane);
       }
-      const gap = this.rowGap(z, speed);
       // coin trail leading into a lane you can get through
       if (this.rng.chance(0.7)) {
         const lane = this.rng.pick(freeLanes);
         const kind = K[row[lane]];
-        const start = z - gap + 4;
         const end = kind ? z - 3 : z + 2;
-        for (let cz = start; cz <= end; cz += CONFIG.coins.spacing) {
-          coins.push({ id: this.nextId++, lane, z: cz, y: 1, taken: false });
-        }
+        for (let cz = z - gap + 4; cz <= end; cz += CONFIG.coins.spacing) coins.push(this.coin(lane, cz, 1));
         // little arc of coins over a jump obstacle
-        if (kind === 'low' || kind === 'lava') {
-          for (const [dz, y] of [[-1.5, 2.0], [0, 2.4], [1.5, 2.0]] as const) {
-            coins.push({ id: this.nextId++, lane, z: z + dz, y, taken: false });
-          }
+        if (kind === 'low' || kind === 'pit') {
+          for (const [dz, y] of [[-1.5, 2.0], [0, 2.4], [1.5, 2.0]] as const) coins.push(this.coin(lane, z + dz, y));
         }
       }
       this.nextRowZ += gap;
@@ -73,12 +83,38 @@ export class TrackGenerator {
     return { obstacles, coins };
   }
 
-  private pickPattern(difficulty: number): string {
+  private coin(lane: number, z: number, y: number): CoinData {
+    return { id: this.nextId++, lane, z, y, taken: false };
+  }
+
+  /**
+   * Celestial Bridges: the path narrows. Two lanes fall away into the clouds for a stretch,
+   * leaving one safe lane. Returns how far to move on.
+   */
+  private narrowPath(z: number, gap: number, obstacles: ObstacleData[], coins: CoinData[]): number {
+    const length = this.rng.range(12, 22);
+    const safe = this.rng.int(0, 2);
+    const centre = z + length / 2;
+    for (let lane = 0; lane < 3; lane++) {
+      if (lane !== safe) obstacles.push({ id: this.nextId++, kind: 'pit', lane, z: centre, hit: false, theme: 'bridges', length });
+    }
+    for (let cz = z - gap + 4; cz <= z + length; cz += CONFIG.coins.spacing) coins.push(this.coin(safe, cz, 1));
+    return length + gap;
+  }
+
+  private pickPattern(difficulty: number, theme: ThemeId): string {
     const maxTier = difficulty < 0.12 ? 0 : difficulty < 0.45 ? 1 : 2;
-    // lean towards the hardest unlocked tier as difficulty grows
-    let tier = this.rng.int(0, maxTier);
-    if (maxTier > 0 && this.rng.chance(difficulty * 0.5)) tier = maxTier;
-    const p = this.rng.pick(PATTERNS[tier]);
+    let p: string;
+    if (theme === 'stairway' && this.rng.chance(0.3)) {
+      p = this.rng.pick(STAIR_EXTRA);
+      // never a full gap row early on
+      if (p === 'VVV' && difficulty < 0.5) p = ' V ';
+    } else {
+      // lean towards the hardest unlocked tier as difficulty grows
+      let tier = this.rng.int(0, maxTier);
+      if (maxTier > 0 && this.rng.chance(difficulty * 0.5)) tier = maxTier;
+      p = this.rng.pick(PATTERNS[tier]);
+    }
     return this.rng.chance(0.5) ? p.split('').reverse().join('') : p;
   }
 

@@ -120,7 +120,7 @@ describe('swipe detection', () => {
 });
 
 describe('collisions', () => {
-  const ob = (kind: ObstacleData['kind'], lane = 1): ObstacleData => ({ id: 1, kind, lane, z: 50, hit: false });
+  const ob = (kind: ObstacleData['kind'], lane = 1): ObstacleData => ({ id: 1, kind, lane, z: 50, hit: false, theme: 'hell' });
   const at = (y: number, height: number = CONFIG.player.height, x: number = laneX(1)) => ({ x, y, z: 50, height });
   it('low barrier: hit when running, clear when jumping high enough', () => {
     expect(overlaps(at(0), ob('low'))).toBe(true);
@@ -138,7 +138,7 @@ describe('collisions', () => {
     expect(resolveHit(ob('low'), false)).toBe('stumble');
     expect(resolveHit(ob('wall'), false)).toBe('crash');
     expect(resolveHit(ob('wall'), true)).toBe('scrape');
-    expect(resolveHit(ob('lava'), false)).toBe('fall');
+    expect(resolveHit(ob('pit'), false)).toBe('fall');
   });
 });
 
@@ -162,6 +162,12 @@ describe('DevilChase', () => {
 });
 
 describe('Score and save data', () => {
+  it('old saves without the new fields still load', () => {
+    const mem: Record<string, string> = { 'heaven-and-hell.save': JSON.stringify({ version: 1, bestScore: 77, runs: 2 }) };
+    const d = new SaveData({ getItem: (k) => mem[k] ?? null, setItem: () => {} }).data;
+    expect(d.bestScore).toBe(77);
+    expect(d.checkpoint).toBe(0);
+  });
   it('scores distance plus coins', () => {
     const s = new ScoreManager();
     s.addDistance(123.7);
@@ -178,6 +184,11 @@ describe('Score and save data', () => {
     expect(b.data.bestScore).toBe(500);
     expect(b.data.totalCoins).toBe(15);
     expect(b.data.runs).toBe(2);
+    b.setCheckpoint(4090, 33);
+    expect(new SaveData(store).data.checkpoint).toBe(4090);
+    expect(new SaveData(store).data.checkpointCoins).toBe(33);
+    b.clearCheckpoint();
+    expect(new SaveData(store).data.checkpoint).toBe(0);
     mem['heaven-and-hell.save'] = '{not json';
     expect(new SaveData(store).data.bestScore).toBe(0);
     const broken: KeyValueStore = { getItem: () => { throw new Error('x'); }, setItem: () => { throw new Error('x'); } };
