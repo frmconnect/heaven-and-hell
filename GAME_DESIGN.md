@@ -8,7 +8,7 @@
 4. **Journey length:** Keep the full journey to God short enough that restarting isn't painful (start with ~10–15 minutes and tune through play-testing).
 5. **Showing God:** God is shown as overwhelming light and a voice (large glowing words on screen), not a figure. (Confirmed by owner in Phase 3.)
 6. **Heavenly levels:** Launch with 2–3 heavenly levels; add more after release.
-7. **Leaderboards:** Start with local high scores. For online, consider Apple Game Center / Google Play Games Services before building a custom server.
+7. **Leaderboards:** Start with local high scores. For online, consider Apple Game Center / Google Play Games Services before building a custom server. (Phase 6: owner chose Supabase first — see #29.)
 8. **Art for the prototype:** Stylized low-poly visuals built in code; real 3D models added later.
 9. **Collision rules (confirmed by owner after phone play-test):** Hitting a fire barrier or burning beam = stumble (you slow down and the Devil gains on you; **three stumbles close together** and he catches you — changed from two by the owner, see #15). Running head-first into a rock wall = run over. Falling into lava = run over. Clipping a wall from the side while changing lanes = bounce back + stumble.
 10. **Hell length:** About 2–3 minutes (~2,000 m) before the Stairway to Heaven appears. Tune through play-testing.
@@ -30,6 +30,10 @@
 26. **Real money (owner, Phase 5):** Not now — everything is bought with coins earned by playing. Decide on cosmetic-only purchases or optional ads in Phase 7 (app stores).
 27. **Daily reward (owner, Phase 5):** 7-day streak of coins for opening the game each day; rewards grow over 7 days, then the streak starts again.
 28. **Economy defaults (Claude's proposal, owner can change):** Cosmetics 600–4,000 coins. Upgrades 1,000 / 2,500 / 5,000 coins per level. Durations: Flight 3 → 4.5 s, Slow Motion 4 → 5.5 s, Magnet 8 → 12.5 s. Daily reward 100, 150, 200, 300, 400, 600, 1,000 coins; missing a day restarts the streak. Coins already earned become spendable. The shop shows your runner wearing the item as you equip it.
+29. **Online leaderboard service (owner, Phase 6):** Supabase (free online database) now, so it works from the game link and later inside the apps; Apple Game Center / Google Play Games can be added in Phase 7.
+30. **Leaderboard names (owner, Phase 6):** Players pick from generated heavenly names (e.g. "Radiant Pilgrim 42"). Nobody can type anything rude; no personal info needed.
+31. **Boards (owner, Phase 6):** Daily, weekly and all-time, each showing your own best and rank. Only Ascended State scores (Decisions log rule: competition unlocks after judgment).
+32. **Leaderboard defaults (Claude's proposal, owner can change):** Each phone gets an anonymous player ID (no sign-in, email or personal info). The server checks every score for plausibility (speed, score vs distance, coins) and limits how often one player can submit. One entry per player per board (their best). Offline: the game keeps working and sends your best score next time you're online.
 
 ---
 
