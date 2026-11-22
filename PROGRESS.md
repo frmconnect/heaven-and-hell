@@ -9,7 +9,7 @@ https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gat
 Ascended State without passing judgment first: https://frmconnect.github.io/heaven-and-hell/?ascended (doesn't change the save).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — Ascended State: **built; owner play-tested** (button easy to tap, Flight Burst feels good; asked for slower charging twice — now about once a minute). Waiting for more play-testing.
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested: button easy to tap, Flight Burst feels good, charging about once a minute "feels just about right"). Next: Phase 5 — Economy & customization.
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -105,7 +105,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 ## Remaining phases
 2. ~~Heaven ascension~~ (done)
 3. ~~Sin, Grace & judgment~~ (done)
-4. ~~Ascended State~~ (built)
+4. ~~Ascended State~~ (done)
 5. Economy & customization (shop, cosmetics, upgrades, save/load)
 6. Global competition (accounts, leaderboards, score validation)
 7. Polish & release (art, music, performance, Capacitor builds, store release)
