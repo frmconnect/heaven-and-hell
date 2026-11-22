@@ -93,6 +93,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 7. Polish & release (art, music, performance, Capacitor builds, store release)
 
 ## Known bugs / limits
+- FIXED: a ?stage= test link showed a big CONTINUE button (saved checkpoint) that went to Heaven's Gate instead of the chosen stage. Test links now show one START button for that stage (found by the owner).
 - FIXED: Level 2 (Celestial Bridges) obstacles were hard to see (pale crystal on a pale bridge). Now royal blue with gold edges; gaps are dark holes with glowing outlines. Level 3 obstacles changed to white marble so they stand out on the gold floor (found by the owner).
 - FIXED: a long swipe from an outer lane jumped two lanes to the far side. Now each swipe moves exactly one lane (found by the owner on their phone).
 - No sound yet (planned for later; must be original or licensed)

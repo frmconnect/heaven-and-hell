@@ -103,7 +103,7 @@ export class Screens {
     for (const s of [this.menu, this.pause, this.over, this.god, this.ascended]) s.classList.remove('on');
   }
 
-  showMenu(best: number, hasCheckpoint: boolean, ascended = false): void {
+  showMenu(best: number, hasCheckpoint: boolean, ascended = false, testStage?: string): void {
     this.hideAll();
     let badge = this.menu.querySelector('.ascended-badge') as HTMLElement | null;
     if (!badge) {
@@ -116,7 +116,7 @@ export class Screens {
     this.q(this.menu, '[data-continue]').style.display = hasCheckpoint ? '' : 'none';
     this.q(this.menu, '[data-continue-note]').style.display = hasCheckpoint ? '' : 'none';
     const play = this.q(this.menu, '[data-play]');
-    play.textContent = hasCheckpoint ? 'NEW JOURNEY' : 'RUN';
+    play.textContent = testStage ? `START: ${testStage.toUpperCase()}` : hasCheckpoint ? 'NEW JOURNEY' : 'RUN';
     play.className = hasCheckpoint ? 'ghost-btn' : 'big-btn';
     this.menu.classList.add('on');
   }

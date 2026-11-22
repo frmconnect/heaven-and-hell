@@ -98,7 +98,10 @@ export class Game {
   }
 
   private showMenu(): void {
-    this.screens.showMenu(this.save.data.bestScore, this.save.data.checkpoint > 0, this.save.data.ascended > 0);
+    // a ?stage= test link: one clear button that starts at that stage (no CONTINUE)
+    const test = this.testStart();
+    const testName = test ? STAGES.find((s) => s.id === new URLSearchParams(location.search).get('stage'))?.name : undefined;
+    this.screens.showMenu(this.save.data.bestScore, !test && this.save.data.checkpoint > 0, this.save.data.ascended > 0, testName);
   }
 
   /** For play-testing: add ?stage=gardens (or stairway, gate, bridges, kingdom) to the link to start there. */
