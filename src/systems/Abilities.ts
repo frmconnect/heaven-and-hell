@@ -7,14 +7,15 @@ export interface AbilityDef {
   name: string;
   description: string;
   duration: number; // seconds
+  upgradeStep: number; // extra seconds per upgrade level (Decisions log #25, #28)
   unlockDistance: number; // best Ascended distance needed (Decisions log #23)
 }
 
 /** The three Ascended abilities (Decisions log #21). */
 export const ABILITIES: Record<AbilityId, AbilityDef> = {
-  flight: { id: 'flight', name: 'Flight Burst', description: 'Fly above everything for 3 seconds', duration: 3, unlockDistance: 0 },
-  slowmo: { id: 'slowmo', name: 'Slow Motion', description: 'Time slows down for 4 seconds', duration: 4, unlockDistance: 1500 },
-  magnet: { id: 'magnet', name: 'Celestial Magnet', description: 'Pull in every coin nearby for 8 seconds', duration: 8, unlockDistance: 3000 },
+  flight: { id: 'flight', name: 'Flight Burst', description: 'Fly above everything for 3 seconds', duration: 3, upgradeStep: 0.5, unlockDistance: 0 },
+  slowmo: { id: 'slowmo', name: 'Slow Motion', description: 'Time slows down for 4 seconds', duration: 4, upgradeStep: 0.5, unlockDistance: 1500 },
+  magnet: { id: 'magnet', name: 'Celestial Magnet', description: 'Pull in every coin nearby for 8 seconds', duration: 8, upgradeStep: 1.5, unlockDistance: 3000 },
 };
 
 export const ABILITY_ORDER: AbilityId[] = ['flight', 'slowmo', 'magnet'];
@@ -32,7 +33,13 @@ export class AbilitySystem {
   active: AbilityId | null = null;
   timer = 0;
 
-  constructor(readonly selected: AbilityId) {}
+  constructor(readonly selected: AbilityId, readonly level = 0) {}
+
+  /** Seconds the ability lasts, including upgrades. */
+  get duration(): number {
+    const def = ABILITIES[this.selected];
+    return def.duration + def.upgradeStep * Math.max(0, Math.min(3, this.level));
+  }
 
   get ready(): boolean {
     return this.active === null && this.charge >= 1;
@@ -60,7 +67,7 @@ export class AbilitySystem {
   activate(): boolean {
     if (!this.ready) return false;
     this.active = this.selected;
-    this.timer = ABILITIES[this.selected].duration;
+    this.timer = this.duration;
     this.charge = 0;
     return true;
   }

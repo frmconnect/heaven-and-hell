@@ -28,6 +28,18 @@ export interface SaveState {
   ascendedRuns: number;
   selectedAbility: number; // index into ABILITY_ORDER
   ascendedTop: number[]; // local top 5 scores
+  // Phase 5: shop, upgrades, daily reward (Decisions log #24-28)
+  wallet: number; // coins you can spend (totalCoins = all coins ever earned)
+  walletReady: number; // 1 once old saves have had their coins moved into the wallet
+  owned: string[]; // shop item ids
+  outfit: string;
+  wings: string;
+  trail: string;
+  upFlight: number; // upgrade levels 0..3
+  upSlowmo: number;
+  upMagnet: number;
+  dailyDay: number; // last day a daily reward was claimed (days since 1970)
+  dailyStreak: number; // 1..7
 }
 
 export interface KeyValueStore {
@@ -42,7 +54,11 @@ export const defaultSave = (): SaveState => ({
   cpSoulsHelped: 0, cpSoulsMissed: 0, cpResisted: 0, cpTaken: 0, cpMiracles: 0,
   godReached: 0, ascended: 0, bestGrace: 0, perfectJudgments: 0,
   ascendedBestScore: 0, ascendedBestDistance: 0, ascendedRuns: 0, selectedAbility: 0, ascendedTop: [],
+  wallet: 0, walletReady: 1, owned: [], outfit: 'pilgrim', wings: 'none', trail: 'none',
+  upFlight: 0, upSlowmo: 0, upMagnet: 0, dailyDay: 0, dailyStreak: 0,
 });
+
+const STRING_KEYS = ['outfit', 'wings', 'trail'] as const;
 
 /** Saves progress on the device. Never throws: if storage is blocked, the game keeps working without saving. */
 export class SaveData {
@@ -59,11 +75,18 @@ export class SaveData {
       const parsed = JSON.parse(raw);
       const d = defaultSave();
       for (const k of Object.keys(d) as (keyof SaveState)[]) {
-        if (k === 'version' || k === 'ascendedTop') continue;
+        if (k === 'version' || typeof d[k] !== 'number') continue;
         if (typeof parsed[k] === 'number' && Number.isFinite(parsed[k])) (d as unknown as Record<string, number>)[k] = parsed[k];
       }
       if (Array.isArray(parsed.ascendedTop)) {
         d.ascendedTop = parsed.ascendedTop.filter((x: unknown) => typeof x === 'number' && Number.isFinite(x)).slice(0, 5);
+      }
+      if (Array.isArray(parsed.owned)) d.owned = parsed.owned.filter((x: unknown) => typeof x === 'string').slice(0, 100);
+      for (const k of STRING_KEYS) if (typeof parsed[k] === 'string') d[k] = parsed[k];
+      // saves from before the shop: the coins you already earned become spendable (Decisions log #28)
+      if (parsed.walletReady !== 1) {
+        d.wallet = d.totalCoins;
+        d.walletReady = 1;
       }
       return d;
     } catch {
@@ -106,6 +129,7 @@ export class SaveData {
     if (passed) d.ascended = 1;
     if (perfect) d.perfectJudgments += 1;
     d.totalCoins += rewardCoins;
+    d.wallet += rewardCoins;
     // the journey is over either way: pass → free to roam, fail → back to Hell (Decisions log #3, #12)
     d.checkpoint = 0;
     d.checkpointCoins = 0;
@@ -128,6 +152,7 @@ export class SaveData {
     const isBest = score > d.ascendedBestScore;
     d.ascendedRuns += 1;
     d.totalCoins += coins;
+    d.wallet += coins;
     if (isBest) d.ascendedBestScore = score;
     d.ascendedBestDistance = Math.max(before, Math.floor(distance));
     const top = [...d.ascendedTop, score].sort((a, b) => b - a).slice(0, 5);
@@ -145,6 +170,7 @@ export class SaveData {
     const isBest = score > this.data.bestScore;
     this.data.runs += 1;
     this.data.totalCoins += coins;
+    this.data.wallet += coins;
     if (isBest) this.data.bestScore = score;
     this.data.bestDistance = Math.max(this.data.bestDistance, Math.floor(distance));
     this.save();

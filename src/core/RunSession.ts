@@ -40,6 +40,7 @@ export interface RunStart {
   bonus?: number; // score carried over from before the checkpoint
   record?: MoralRecord; // Sin/Grace from before the checkpoint
   ability?: AbilityId; // Ascended State: the ability you brought
+  abilityLevel?: number; // its upgrade level (0..3)
 }
 
 /** Score bonus for finishing a heavenly level. */
@@ -95,7 +96,7 @@ export class RunSession {
       this.chaser = 'shadow';
       this.devil.gap = CONFIG.devil.maxGap;
     }
-    this.ability = this.ascended ? new AbilitySystem(start.ability ?? 'flight') : null;
+    this.ability = this.ascended ? new AbilitySystem(start.ability ?? 'flight', start.abilityLevel ?? 0) : null;
   }
 
   get ascended(): boolean {
