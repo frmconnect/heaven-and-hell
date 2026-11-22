@@ -190,3 +190,4 @@ html, body {
 .day.today b, .day.today small { color: #3a2a00; opacity: 1; }
 .screen.daily { background: radial-gradient(ellipse at 50% 40%, rgba(70,20,10,.97), rgba(10,1,0,.98)); z-index: 5; }
 .gift-banner { position: absolute; z-index: 10; left: 16px; right: 16px; top: calc(var(--safe-top) + 14px); padding: 12px 14px; border-radius: 14px; text-align: center; font-weight: 900; color: #3a2a00; background: linear-gradient(180deg, #fff2b0, #ffc23a); box-shadow: 0 6px 20px rgba(0,0,0,.4); animation: jfade .4s ease-out; }
+.build { position: absolute; bottom: calc(var(--safe-bottom) + 6px); left: 0; right: 0; font-size: 10px; opacity: .45; }

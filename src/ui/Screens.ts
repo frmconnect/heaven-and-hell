@@ -73,6 +73,7 @@ export class Screens {
       <div class="menu-row"><button class="ghost-btn" data-shop>SHOP</button></div>
       <div class="wallet"><span class="coin-dot"></span><span data-wallet>0</span></div>
       <div class="best" data-best></div>
+      <div class="build">Version ${typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}</div>
       <div class="how">Swipe ← → to change lanes<br/>Swipe ↑ to jump · Swipe ↓ to slide<br/>3 stumbles close together and you're caught<br/>Escape the Devil and climb to Heaven</div>`);
     this.pause = this.make(root, `
       <div class="go-reason">Paused</div>
