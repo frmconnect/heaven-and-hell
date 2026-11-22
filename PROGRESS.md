@@ -10,7 +10,7 @@ Ascended State without passing judgment first: https://frmconnect.github.io/heav
 One-time 10,000 tester coins for the shop: https://frmconnect.github.io/heaven-and-hell/?gift (once per phone).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — **Complete** (owner play-tested). Phase 6 — Online leaderboards: **LIVE** on the owner's Supabase project. Server rules checked live (impossible score / bad name refused, table not directly readable). Waiting for the first real Ascended score from the owner's phone.
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — **Complete** (owner play-tested). Phase 6 — **Complete**: online leaderboard live; first real score from the owner's phone confirmed on the server ("Fearless Halo 83", 5,756). Next: Phase 7 — Polish & release (music/settings, sound effects, more shop items, performance, Capacitor app builds, remove test links).
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -129,7 +129,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 3. ~~Sin, Grace & judgment~~ (done)
 4. ~~Ascended State~~ (done)
 5. ~~Economy & customization~~ (done)
-6. ~~Global competition~~ (built, live)
+6. ~~Global competition~~ (done, live)
 7. Polish & release (art, music, performance, Capacitor builds, store release)
 
 ## Known bugs / limits
