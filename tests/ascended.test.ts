@@ -59,9 +59,9 @@ describe('Abilities (Decisions log #21, #23)', () => {
   it('the button charges from coins and clean running, fires when full, then lasts its duration', () => {
     const a = new AbilitySystem('slowmo');
     expect(a.activate()).toBe(false);
-    for (let i = 0; i < 90; i++) a.addCoin();
+    for (let i = 0; i < 180; i++) a.addCoin();
     expect(a.ready).toBe(false);
-    expect(a.addCleanDistance(300)).toBe(true);
+    expect(a.addCleanDistance(500)).toBe(true);
     expect(a.ready).toBe(true);
     expect(a.activate()).toBe(true);
     expect(a.charge).toBe(0);
@@ -104,10 +104,10 @@ describe('Ascended run', () => {
     s.useAbility();
     expect(s.timeScale).toBe(0.5);
   });
-  it('charging takes a while (owner: it was too easy): not full after 25 coins or 800 m of running', () => {
+  it('charging takes about a minute (owner, twice: it was too easy): not full after 80 coins + 1,500 m', () => {
     const a = new AbilitySystem('flight');
-    for (let i = 0; i < 25; i++) a.addCoin();
-    a.addCleanDistance(800);
+    for (let i = 0; i < 80; i++) a.addCoin();
+    a.addCleanDistance(1500);
     expect(a.ready).toBe(false);
   });
   it('Celestial Magnet collects coins in other lanes', () => {
