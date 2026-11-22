@@ -5,6 +5,9 @@ Use them to look at, improve or replace the game's art — or send them to an ar
 
 > Blender runs on a computer (Windows, Mac or Linux), not on a phone. It's free: **blender.org**.
 
+## Making new models with Hyper3D
+See **`HYPER3D_PROMPTS.md`**: a ready-to-paste prompt for every model, plus reference pictures of each one in `reference/`.
+
 ## 1. Open a model in Blender
 
 1. Install Blender from **blender.org** and open it.

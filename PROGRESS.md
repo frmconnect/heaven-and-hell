@@ -144,8 +144,10 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 ## Art pack (for Blender / artists)
 - `art/models/` — all 70 game models as .glb (characters, wings, obstacles per world, scenery, track, Heaven's Gate, pickups)
 - `art/BLENDER_GUIDE.md` — how to open them in Blender, size/placement/triangle rules, animation names, export settings, how to send models back (`art/incoming/`)
-- `art/heaven-and-hell-3d-models.zip` — the guide + all models in one download
-- Refresh after art changes: `node scripts/export-models.cjs`
+- `art/reference/` — a picture (PNG) of every model, for Hyper3D image prompts
+- `art/HYPER3D_PROMPTS.md` — a ready-to-paste Hyper3D prompt for every model, settings, Mixamo steps for animation, work order
+- `art/final-freedom-art-pack.zip` — guides + models + pictures in one download
+- Refresh after art changes: `node scripts/export-models.cjs && node scripts/render-refs.cjs`
 - `ASSETS.md` — who made each asset and its licence
 
 ## Technical decisions
