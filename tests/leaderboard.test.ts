@@ -39,13 +39,25 @@ describe('Leaderboard client', () => {
         : [{ rank: 2, score: 5000, players: 17 }];
       return { ok: true, status: 200, json: async () => data };
     };
-    const lb = new Leaderboard({ url: 'https://demo.supabase.co/', anonKey: 'public-key' }, fake);
+    const lb = new Leaderboard({ url: 'https://demo.supabase.co/', anonKey: 'eyJpublic-key' }, fake);
     expect(await lb.submit(entry())).toEqual({ ok: true });
     expect(calls[0].url).toBe('https://demo.supabase.co/rest/v1/rpc/submit_score');
-    expect(calls[0].headers.apikey).toBe('public-key');
+    expect(calls[0].headers.apikey).toBe('eyJpublic-key');
     const rows = await lb.top('weekly', 'me');
     expect(rows?.[1]).toEqual({ rank: 2, name: 'Radiant Pilgrim 42', score: 5000, isMe: true });
     expect(await lb.myRank('alltime', 'me')).toEqual({ rank: 2, score: 5000, players: 17 });
+  });
+  it('sends new publishable keys only as apikey, old anon keys also as Bearer', async () => {
+    const seen: Record<string, string>[] = [];
+    const fake = async (_u: string, init: { headers: Record<string, string> }) => {
+      seen.push(init.headers);
+      return { ok: true, status: 200, json: async () => [] };
+    };
+    await new Leaderboard({ url: 'https://x.supabase.co', anonKey: 'sb_publishable_abc' }, fake).top('daily', 'me');
+    await new Leaderboard({ url: 'https://x.supabase.co', anonKey: 'eyJhbGciOi.test' }, fake).top('daily', 'me');
+    expect(seen[0].apikey).toBe('sb_publishable_abc');
+    expect(seen[0].Authorization).toBeUndefined();
+    expect(seen[1].Authorization).toBe('Bearer eyJhbGciOi.test');
   });
   it('treats a network failure as offline', async () => {
     const lb = new Leaderboard({ url: 'https://demo.supabase.co', anonKey: 'k' }, async () => { throw new Error('no internet'); });

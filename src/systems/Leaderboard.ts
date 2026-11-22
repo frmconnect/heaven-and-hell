@@ -56,12 +56,23 @@ export class Leaderboard {
     return !!(this.config?.url && this.config.anonKey && this.fetchFn);
   }
 
+  /**
+   * Old-style "anon" keys (eyJ…) also go in the Authorization header; new "publishable" keys
+   * (sb_publishable_…) go only in the apikey header.
+   */
+  private headers(): Record<string, string> {
+    const key = this.config?.anonKey ?? '';
+    const h: Record<string, string> = { apikey: key, 'Content-Type': 'application/json' };
+    if (key.startsWith('eyJ')) h.Authorization = `Bearer ${key}`;
+    return h;
+  }
+
   private async rpc<T>(fn: string, body: Record<string, unknown>): Promise<T | null> {
     if (!this.configured || !this.config || !this.fetchFn) return null;
     try {
       const res = await this.fetchFn(`${this.config.url.replace(/\/$/, '')}/rest/v1/rpc/${fn}`, {
         method: 'POST',
-        headers: { apikey: this.config.anonKey, Authorization: `Bearer ${this.config.anonKey}`, 'Content-Type': 'application/json' },
+        headers: this.headers(),
         body: JSON.stringify(body),
       });
       if (!res.ok) return null;
