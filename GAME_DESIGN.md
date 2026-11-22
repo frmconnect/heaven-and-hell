@@ -34,6 +34,7 @@
 30. **Leaderboard names (owner, Phase 6):** Players pick from generated heavenly names (e.g. "Radiant Pilgrim 42"). Nobody can type anything rude; no personal info needed.
 31. **Boards (owner, Phase 6):** Daily, weekly and all-time, each showing your own best and rank. Only Ascended State scores (Decisions log rule: competition unlocks after judgment).
 32. **Leaderboard defaults (Claude's proposal, owner can change):** Each phone gets an anonymous player ID (no sign-in, email or personal info). The server checks every score for plausibility (speed, score vs distance, coins) and limits how often one player can submit. One entry per player per board (their best). Offline: the game keeps working and sends your best score next time you're online.
+33. **Music (owner):** The owner is making original music for the game. Add a Settings screen with music options: pick one song or shuffle (plus volume / music on-off, sound effects on-off). Build this when the owner's songs are ready (Phase 7 polish). Record each song in `ASSETS.md` as the owner's original work.
 
 ---
 
