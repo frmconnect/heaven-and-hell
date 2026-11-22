@@ -34,6 +34,7 @@ export class ObstacleRenderer {
     deepCrystal: new THREE.MeshStandardMaterial({ color: '#4a7aff', roughness: 0.15, emissive: '#2a4ad0', emissiveIntensity: 0.8, flatShading: true }),
     deepVoid: new THREE.MeshBasicMaterial({ color: '#0e1a4a' }),
     rimGlow: new THREE.MeshBasicMaterial({ color: '#7fe8ff' }),
+    cosmicSolid: new THREE.MeshStandardMaterial({ color: '#7a3aff', roughness: 0.3, metalness: 0.2, emissive: '#4a10c0', emissiveIntensity: 0.7, flatShading: true }),
   };
   private geos = {
     box: new THREE.BoxGeometry(1, 1, 1),
@@ -100,8 +101,8 @@ export class ObstacleRenderer {
       g.add(mesh);
       return mesh;
     };
-    const solid = theme === 'gardens' ? m.hedge : theme === 'bridges' ? m.royal : D.marblePlain;
-    const trim = theme === 'bridges' ? m.brightGold : theme === 'kingdom' ? m.goldGlow : D.gold;
+    const solid = theme === 'gardens' ? m.hedge : theme === 'bridges' ? m.royal : theme === 'cosmic' ? m.cosmicSolid : D.marblePlain;
+    const trim = theme === 'bridges' ? m.brightGold : theme === 'kingdom' ? m.goldGlow : theme === 'cosmic' ? m.rimGlow : D.gold;
     if (kind === 'low') {
       if (theme === 'gardens') {
         add(this.geos.wall, m.hedge, s.width * 0.55, s.top * 0.7, s.length * 0.9, 0, s.top * 0.5);
@@ -117,7 +118,7 @@ export class ObstacleRenderer {
       add(box, post, 0.18, s.top, 0.18, -s.width / 2, s.top / 2);
       add(box, post, 0.18, s.top, 0.18, s.width / 2, s.top / 2);
       add(box, solid, s.width, 0.7, s.length, 0, s.bottom + 0.35);
-      add(box, theme === 'gardens' ? D.blossom : theme === 'bridges' ? m.brightGold : m.heavenGlow, s.width, theme === 'bridges' ? 0.14 : 0.08, s.length + 0.02, 0, s.bottom + 0.02);
+      add(box, theme === 'gardens' ? D.blossom : theme === 'bridges' ? m.brightGold : theme === 'cosmic' ? m.rimGlow : m.heavenGlow, s.width, theme === 'bridges' || theme === 'cosmic' ? 0.14 : 0.08, s.length + 0.02, 0, s.bottom + 0.02);
       add(box, solid, s.width, 0.3, 0.3, 0, s.top - 0.3);
       if (theme === 'gardens') for (let i = -2; i <= 2; i++) add(this.geos.wall, D.blossom, 0.16, 0.16, 0.16, i * 0.4, s.bottom + 0.75, 0.2);
     } else if (kind === 'wall') {
@@ -126,8 +127,8 @@ export class ObstacleRenderer {
         add(this.geos.wall, m.hedge, s.width * 0.55, s.top * 0.42, s.length * 0.6, 0, s.top * 0.55);
         add(box, D.bark, 0.3, 1.2, 0.3, 0, 0.6);
         add(this.geos.wall, D.blossom, 0.3, 0.3, 0.3, 0.4, s.top * 0.9, 0.3);
-      } else if (theme === 'bridges') {
-        const c = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), m.deepCrystal);
+      } else if (theme === 'bridges' || theme === 'cosmic') {
+        const c = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), theme === 'cosmic' ? m.cosmicSolid : m.deepCrystal);
         c.scale.set(s.width * 0.45, s.top * 0.55, s.length * 0.45);
         c.position.y = s.top * 0.55;
         g.add(c);
@@ -141,9 +142,9 @@ export class ObstacleRenderer {
       }
     } else {
       // a gap: look down to Hell's glow from the Stairway, or to the clouds from Heaven
-      const below = theme === 'stairway' ? m.hellBelow : theme === 'bridges' ? m.deepVoid : m.skyBelow;
+      const below = theme === 'stairway' ? m.hellBelow : theme === 'bridges' || theme === 'cosmic' ? m.deepVoid : m.skyBelow;
       add(box, below, s.width - 0.1, 0.05, s.length - 0.1, 0, 0.03);
-      if (theme === 'bridges') {
+      if (theme === 'bridges' || theme === 'cosmic') {
         // glowing outline so the gap is easy to see
         for (const x of [-1, 1]) add(box, m.rimGlow, 0.1, 0.07, s.length, x * (s.width / 2 - 0.05), 0.05);
         add(box, m.rimGlow, s.width, 0.07, 0.12, 0, 0.05, s.length / 2);

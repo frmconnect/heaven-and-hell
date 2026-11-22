@@ -1,7 +1,7 @@
 import { GameState } from '../core/GameStateManager';
 
 /** The look of a stretch of track. */
-export type ThemeId = 'hell' | 'stairway' | 'gate' | 'gardens' | 'bridges' | 'kingdom' | 'god';
+export type ThemeId = 'hell' | 'stairway' | 'gate' | 'gardens' | 'bridges' | 'kingdom' | 'god' | 'cosmic';
 
 export interface StageDef {
   id: ThemeId;

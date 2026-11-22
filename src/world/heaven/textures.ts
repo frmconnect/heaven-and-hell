@@ -131,3 +131,52 @@ export function voidTexture(hellBelow: boolean): THREE.CanvasTexture {
     g.fillRect(0, 0, s, s);
   });
 }
+
+/** Dark glass with a glowing cyan grid (Cosmic Heavens). */
+export function cosmicFloorTexture(): THREE.CanvasTexture {
+  const r = new Rng(71);
+  return canvasTexture(256, (g, s) => {
+    const grad = g.createLinearGradient(0, 0, s, s);
+    grad.addColorStop(0, '#1a1040');
+    grad.addColorStop(1, '#2a1660');
+    g.fillStyle = grad;
+    g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 60; i++) {
+      g.fillStyle = `rgba(255,255,255,${r.range(0.2, 0.9)})`;
+      g.fillRect(r.range(0, s), r.range(0, s), 1.5, 1.5);
+    }
+    g.strokeStyle = 'rgba(120,230,255,0.85)';
+    g.shadowColor = '#7fe8ff';
+    g.shadowBlur = 6;
+    g.lineWidth = 2;
+    for (let y = 0; y <= s; y += s / 4) {
+      g.beginPath(); g.moveTo(0, y); g.lineTo(s, y); g.stroke();
+    }
+    g.strokeStyle = 'rgba(200,140,255,0.6)';
+    for (let x = 0; x <= s; x += s / 3) {
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, s); g.stroke();
+    }
+  });
+}
+
+/** Swirling purple nebula, far below the cosmic path. */
+export function nebulaTexture(): THREE.CanvasTexture {
+  const r = new Rng(81);
+  return canvasTexture(256, (g, s) => {
+    g.fillStyle = '#0a0620';
+    g.fillRect(0, 0, s, s);
+    for (let i = 0; i < 40; i++) {
+      const x = r.range(0, s), y = r.range(0, s), rad = r.range(20, 70);
+      const grad = g.createRadialGradient(x, y, 0, x, y, rad);
+      const c = r.pick(['rgba(160,80,255,0.35)', 'rgba(80,160,255,0.3)', 'rgba(255,100,200,0.25)']);
+      grad.addColorStop(0, c);
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = grad;
+      for (const ox of [-s, 0, s]) for (const oy of [-s, 0, s]) { g.beginPath(); g.arc(x + ox, y + oy, rad, 0, Math.PI * 2); g.fill(); }
+    }
+    for (let i = 0; i < 120; i++) {
+      g.fillStyle = `rgba(255,255,255,${r.range(0.3, 1)})`;
+      g.fillRect(r.range(0, s), r.range(0, s), 1.2, 1.2);
+    }
+  });
+}

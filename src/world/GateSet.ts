@@ -1,9 +1,7 @@
 import * as THREE from 'three';
 import { MATERIALS as M } from './decor';
-import { stageStart } from './journey';
-
-/** Where the gates stand (track distance). */
-export const GATE_Z = stageStart('gate') + 60;
+import { GATE_Z } from './gateZ';
+export { GATE_Z };
 
 /**
  * Heaven's Gate: two giant marble pillars, a golden arch and pearly gates that swing open

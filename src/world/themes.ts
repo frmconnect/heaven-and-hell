@@ -16,6 +16,7 @@ export interface ThemeLook {
   particleRise: number;
   particleSize: number;
   exposure: number;
+  stars?: number; // 0..1 starfield (Cosmic Heavens)
 }
 
 export const LOOKS: Record<ThemeId, ThemeLook> = {
@@ -48,6 +49,11 @@ export const LOOKS: Record<ThemeId, ThemeLook> = {
     sky: '#fff6e0', fog: '#fffaf0', fogNear: 10, fogFar: 90,
     hemiSky: '#ffffff', hemiGround: '#f0d8a0', hemi: 1.6, key: '#fff8e8', keyIntensity: 1.6,
     fire: 0, particle: '#fff8d0', particleRise: 1.2, particleSize: 0.16, exposure: 1.05,
+  },
+  cosmic: {
+    sky: '#0c0828', fog: '#1a1040', fogNear: 40, fogFar: 210,
+    hemiSky: '#b8a8ff', hemiGround: '#301a60', hemi: 1.3, key: '#d8e8ff', keyIntensity: 1.5,
+    fire: 0, particle: '#9fe8ff', particleRise: 0.4, particleSize: 0.12, exposure: 1.05, stars: 1,
   },
   kingdom: {
     sky: '#f2c86a', fog: '#f7deaa', fogNear: 30, fogFar: 170,

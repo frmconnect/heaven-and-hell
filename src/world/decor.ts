@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CONFIG } from '../core/config';
 import { basaltTexture, rockTexture } from './hell/textures';
-import { bridgeTexture, cloudTexture, gardenPathTexture, goldTileTexture, marbleTexture } from './heaven/textures';
+import { bridgeTexture, cloudTexture, cosmicFloorTexture, gardenPathTexture, goldTileTexture, marbleTexture, nebulaTexture } from './heaven/textures';
 import { STAGES, type ThemeId } from './journey';
 
 export const TRACK_WIDTH = CONFIG.lanes.width * CONFIG.lanes.count + 0.8;
@@ -20,6 +20,8 @@ const M = (() => {
   bridge.repeat.set(1, 2);
   const gold = goldTileTexture();
   gold.repeat.set(2, 2);
+  const cosmic = cosmicFloorTexture();
+  cosmic.repeat.set(1, 2);
   return {
     basalt: new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.95, emissive: '#ff3300', emissiveMap: floorTex, emissiveIntensity: 0.35 }),
     hellEdge: new THREE.MeshBasicMaterial({ color: '#ff6a1a' }),
@@ -40,6 +42,12 @@ const M = (() => {
     islandRock: new THREE.MeshStandardMaterial({ color: '#9a8aa8', roughness: 1, flatShading: true }),
     goldTiles: new THREE.MeshStandardMaterial({ map: gold, roughness: 0.3, metalness: 0.7, emissive: '#5a3a00', emissiveIntensity: 0.25 }),
     glowWhite: new THREE.MeshBasicMaterial({ color: '#fffbe8' }),
+    cosmicFloor: new THREE.MeshStandardMaterial({ map: cosmic, roughness: 0.2, metalness: 0.3, emissive: '#ffffff', emissiveMap: cosmic, emissiveIntensity: 0.55 }),
+    neonCyan: new THREE.MeshBasicMaterial({ color: '#7fe8ff' }),
+    planetA: new THREE.MeshStandardMaterial({ color: '#c88aff', roughness: 0.8, flatShading: true, emissive: '#4a1a8a', emissiveIntensity: 0.5 }),
+    planetB: new THREE.MeshStandardMaterial({ color: '#6ab8ff', roughness: 0.8, flatShading: true, emissive: '#1a3a8a', emissiveIntensity: 0.5 }),
+    ring: new THREE.MeshBasicMaterial({ color: '#ffe0a8', transparent: true, opacity: 0.7, side: THREE.DoubleSide }),
+    violetCrystal: new THREE.MeshStandardMaterial({ color: '#a070ff', roughness: 0.1, emissive: '#6a2aff', emissiveIntensity: 0.9, flatShading: true }),
     cloud: new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 1, flatShading: true, emissive: '#c8d4f0', emissiveIntensity: 0.35 }),
     goldCloud: new THREE.MeshStandardMaterial({ color: '#fff0c8', roughness: 1, flatShading: true, emissive: '#e8c070', emissiveIntensity: 0.3 }),
   };
@@ -129,6 +137,10 @@ export function buildTile(theme: ThemeId): TileBuild {
       flat(M.marble);
       g.add(mesh(G.box, M.glowWhite, 1.2, 0.04, TILE, 0, 0.01, 0));
       for (const s of [-1, 1]) g.add(mesh(G.box, M.gold, 0.3, 0.3, TILE, s * (TRACK_WIDTH / 2), 0.1, 0));
+      return { obj: g, stepped: false };
+    case 'cosmic':
+      flat(M.cosmicFloor, 0.4);
+      for (const s of [-1, 1]) g.add(mesh(G.box, M.neonCyan, 0.1, 0.1, TILE, s * (TRACK_WIDTH / 2), 0.03, 0));
       return { obj: g, stepped: false };
     case 'kingdom':
       flat(M.goldTiles);
@@ -266,6 +278,37 @@ function brazier(): THREE.Object3D {
   return g;
 }
 
+function planet(): THREE.Object3D {
+  const g = new THREE.Group();
+  const big = Math.random() < 0.5;
+  g.add(mesh(G.ico, big ? M.planetA : M.planetB, 3, 3, 3));
+  const ring = new THREE.Mesh(new THREE.RingGeometry(4, 5.6, 32), M.ring);
+  ring.rotation.x = Math.PI / 2.4;
+  g.add(ring);
+  return g;
+}
+
+function crystalSpire(): THREE.Object3D {
+  const g = new THREE.Group();
+  const c = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), M.violetCrystal);
+  c.scale.set(0.8, 4, 0.8);
+  c.position.y = 2;
+  g.add(c);
+  const c2 = new THREE.Mesh(new THREE.OctahedronGeometry(1, 0), M.violetCrystal);
+  c2.scale.set(0.45, 2.2, 0.45);
+  c2.position.set(0.9, 1, 0.3);
+  c2.rotation.z = -0.3;
+  g.add(c2);
+  return g;
+}
+
+function starOrb(): THREE.Object3D {
+  const g = new THREE.Group();
+  g.add(mesh(G.cyl, M.neonCyan, 0.05, 2.6, 0.05, 0, 1.3));
+  g.add(mesh(G.sphere, M.glowWhite, 0.3, 0.3, 0.3, 0, 2.8));
+  return g;
+}
+
 const near = TRACK_WIDTH / 2;
 /** Roadside decorations for each world. */
 export const DECOR: Record<ThemeId, DecorSpec[]> = {
@@ -298,6 +341,11 @@ export const DECOR: Record<ThemeId, DecorSpec[]> = {
     { build: () => cloudPuff(M.goldCloud), minX: near + 2, maxX: 26, y: [-2, 3], scale: [1.4, 3] },
     { build: goldColumn, minX: near + 0.7, maxX: near + 0.7 },
   ],
+  cosmic: [
+    { build: starOrb, minX: near + 0.3, maxX: near + 0.3 },
+    { build: crystalSpire, minX: near + 4, maxX: 26, scale: [0.8, 2] },
+    { build: planet, minX: near + 18, maxX: 50, y: [4, 22], scale: [0.6, 1.6] },
+  ],
   kingdom: [
     { build: goldColumn, minX: near + 0.7, maxX: near + 0.7 },
     { build: goldTower, minX: near + 7, maxX: 30, scale: [0.8, 1.6] },
@@ -322,5 +370,6 @@ export const SEAS: Partial<Record<ThemeId, SeaSpec>> = {
   gardens: { material: new THREE.MeshStandardMaterial({ color: '#8cc868', roughness: 1 }), y: -0.6 },
   bridges: { material: cloudSea, y: -24 },
   god: { material: cloudSea, y: -4 },
+  cosmic: { material: new THREE.MeshBasicMaterial({ map: (() => { const t = nebulaTexture(); t.repeat.set(4, 1); return t; })() }), y: -30 },
   kingdom: { material: new THREE.MeshStandardMaterial({ map: goldCloudTex, roughness: 1, emissive: '#ffe0a0', emissiveMap: goldCloudTex, emissiveIntensity: 0.4 }), y: -6 },
 };

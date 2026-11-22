@@ -1,6 +1,7 @@
 import { CONFIG } from '../core/config';
 import { Rng } from '../core/rng';
-import { difficultyAt, JOURNEY_LENGTH, obstaclesAllowed, stageAt, type ThemeId } from './journey';
+import { difficultyAt, type ThemeId } from './journey';
+import { JOURNEY_MAP, type WorldMap } from './worldMap';
 import type { ObstacleData, ObstacleKind } from './obstacles';
 
 export interface CoinData {
@@ -38,6 +39,9 @@ const STAIR_EXTRA = ['V  ', ' V ', '  V', 'VV ', ' VV', 'V V', 'VVV'];
 
 export { difficultyAt };
 
+/** Ids are unique across runs, so a restarted run never reuses an old obstacle's mesh. */
+let NEXT_ID = 1;
+
 /**
  * Builds the course ahead of the player: rows of obstacles and trails of coins.
  * It follows the journey map: each stage has its own mix, quiet stretches near stage changes,
@@ -47,12 +51,11 @@ export { difficultyAt };
 export class TrackGenerator {
   private rng: Rng;
   private nextRowZ: number;
-  private nextId = 1;
   private lastRowZ = -1e9;
   private nextEncounterZ: number;
   private nextMiracleZ: number;
 
-  constructor(seed: number, startZ = 0) {
+  constructor(seed: number, startZ = 0, private map: WorldMap = JOURNEY_MAP) {
     this.rng = new Rng(seed);
     this.nextRowZ = startZ + CONFIG.track.safeStart;
     this.nextEncounterZ = startZ + this.rng.range(120, 220);
@@ -64,28 +67,29 @@ export class TrackGenerator {
     const obstacles: ObstacleData[] = [];
     const coins: CoinData[] = [];
     const pickups: PickupData[] = [];
-    const limit = Math.min(untilZ, JOURNEY_LENGTH);
+    const map = this.map;
+    const limit = Math.min(untilZ, map.end);
     while (this.nextRowZ < limit) {
       const z = this.nextRowZ;
-      if (!obstaclesAllowed(z)) {
+      if (!map.obstaclesAllowed(z)) {
         // quiet stretch: just a few coins down the middle
         if (this.rng.chance(0.25)) for (let k = 0; k < 5; k++) coins.push(this.coin(1, z + k * CONFIG.coins.spacing, 1));
         this.nextRowZ += 12;
         this.lastRowZ = -1e9;
         continue;
       }
-      const stage = stageAt(z);
+      const stage = map.stageAt(z);
       const gap = this.rowGap(z, speed);
       if (stage.id === 'bridges' && this.rng.chance(0.28)) {
         this.nextRowZ += this.narrowPath(z, gap, obstacles, coins);
         this.lastRowZ = -1e9;
         continue;
       }
-      const row = this.pickPattern(difficultyAt(z), stage.id);
+      const row = this.pickPattern(map.difficultyAt(z), stage.id);
       const freeLanes: number[] = [];
       for (let lane = 0; lane < 3; lane++) {
         const kind = K[row[lane]];
-        if (kind) obstacles.push({ id: this.nextId++, kind, lane, z, hit: false, theme: stage.id });
+        if (kind) obstacles.push({ id: NEXT_ID++, kind, lane, z, hit: false, theme: stage.id });
         if (row[lane] !== 'W') freeLanes.push(lane);
       }
       // coin trail leading into a lane you can get through
@@ -115,8 +119,8 @@ export class TrackGenerator {
     if (z - prev < 11 || z - prev > 45) return;
     const mid = (prev + z) / 2;
     const add = (kind: PickupKind, lane: number, pz: number, y = 0) =>
-      out.push({ id: this.nextId++, kind, lane, z: pz, y, taken: false, resolved: false });
-    if (z >= this.nextEncounterZ) {
+      out.push({ id: NEXT_ID++, kind, lane, z: pz, y, taken: false, resolved: false });
+    if (this.map.moral && z >= this.nextEncounterZ) {
       const m = CONFIG.moral;
       this.nextEncounterZ = z + this.rng.range(m.encounterEvery[0], m.encounterEvery[1]);
       if (this.rng.chance(m.temptationChance)) {
@@ -136,7 +140,7 @@ export class TrackGenerator {
   }
 
   private coin(lane: number, z: number, y: number): CoinData {
-    return { id: this.nextId++, lane, z, y, taken: false };
+    return { id: NEXT_ID++, lane, z, y, taken: false };
   }
 
   /**
@@ -148,7 +152,7 @@ export class TrackGenerator {
     const safe = this.rng.int(0, 2);
     const centre = z + length / 2;
     for (let lane = 0; lane < 3; lane++) {
-      if (lane !== safe) obstacles.push({ id: this.nextId++, kind: 'pit', lane, z: centre, hit: false, theme: 'bridges', length });
+      if (lane !== safe) obstacles.push({ id: NEXT_ID++, kind: 'pit', lane, z: centre, hit: false, theme: 'bridges', length });
     }
     for (let cz = z - gap + 4; cz <= z + length; cz += CONFIG.coins.spacing) coins.push(this.coin(safe, cz, 1));
     return length + gap;
@@ -171,10 +175,10 @@ export class TrackGenerator {
   }
 
   private rowGap(z: number, speed: number): number {
-    const d = difficultyAt(z);
+    const d = this.map.difficultyAt(z);
     const { minRowGapSeconds: mn, maxRowGapSeconds: mx, minRowGapMetres } = CONFIG.track;
     const maxSecs = mx - (mx - mn) * d * 0.7;
-    const secs = this.rng.range(Math.max(mn, maxSecs - 0.5), maxSecs);
+    const secs = this.rng.range(Math.max(mn, maxSecs - 0.5), Math.max(mn, maxSecs));
     return Math.max(minRowGapMetres, secs * Math.max(speed, CONFIG.run.startSpeed));
   }
 }

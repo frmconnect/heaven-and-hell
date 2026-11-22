@@ -63,6 +63,20 @@ export const CONFIG = {
     pickupRadius: 1.3,
     shieldInvulnerable: 1.0, // seconds of safety after the shield breaks
   },
+  // Phase 4: Ascended State (Decisions log #20-23)
+  ascended: {
+    startSpeed: 15,
+    maxSpeed: 32,
+    multiplierEvery: 250, // clean metres per multiplier step
+    maxMultiplier: 5,
+  },
+  ability: {
+    chargePerCoin: 0.04, // 25 coins fill the button
+    chargePerMetre: 0.0012, // clean running also charges it slowly
+    flightHeight: 3.4,
+    slowMotionScale: 0.5,
+    magnetRange: 10,
+  },
   judgment: {
     pass: 70, // Grace % needed to pass
     extra: 85, // extra reward
