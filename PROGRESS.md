@@ -167,6 +167,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - Backup play link: `scripts/make-single-file.mjs` packs the build into one file, published as a private claude.ai page.
 
 ## Open design decisions
+- **Money (Decisions log #35, at launch):** rewarded ads (double coins after a run, double daily reward; never during runs, never in leaderboard runs) + real-money cosmetics and a supporter pack. Still to choose: the paid items and prices. Needs: AdMob account, banking/tax info in both developer accounts (owner), ad consent pop-up, updated privacy forms. Built during app packaging (needs the native apps).
 - **Music:** owner is making original songs (Decisions log #33). When ready: Settings screen with music on/off, volume, choose a song or shuffle; sound effects on/off.
 - More shop items: owner will suggest ideas.
 - **Journey length:** currently ~9 minutes for a good run (target 10–15). Tune after play-testing.
