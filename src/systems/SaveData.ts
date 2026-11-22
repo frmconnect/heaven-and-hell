@@ -40,6 +40,7 @@ export interface SaveState {
   upMagnet: number;
   dailyDay: number; // last day a daily reward was claimed (days since 1970)
   dailyStreak: number; // 1..7
+  testerGift: number; // 1 = the one-time ?gift tester coins were given (remove before release)
 }
 
 export interface KeyValueStore {
@@ -55,7 +56,7 @@ export const defaultSave = (): SaveState => ({
   godReached: 0, ascended: 0, bestGrace: 0, perfectJudgments: 0,
   ascendedBestScore: 0, ascendedBestDistance: 0, ascendedRuns: 0, selectedAbility: 0, ascendedTop: [],
   wallet: 0, walletReady: 1, owned: [], outfit: 'pilgrim', wings: 'none', trail: 'none',
-  upFlight: 0, upSlowmo: 0, upMagnet: 0, dailyDay: 0, dailyStreak: 0,
+  upFlight: 0, upSlowmo: 0, upMagnet: 0, dailyDay: 0, dailyStreak: 0, testerGift: 0,
 });
 
 const STRING_KEYS = ['outfit', 'wings', 'trail'] as const;

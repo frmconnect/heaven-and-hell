@@ -8,7 +8,7 @@ import { InputController } from '../input/InputController';
 import { PlayerAvatar } from '../player/PlayerAvatar';
 import { ABILITIES, ABILITY_ORDER, isUnlocked, type AbilityId } from '../systems/Abilities';
 import { SaveData } from '../systems/SaveData';
-import { itemById, Shop } from '../systems/Shop';
+import { giveTesterGift, itemById, Shop } from '../systems/Shop';
 import { TrailRenderer } from '../player/TrailRenderer';
 import { ShopScreen } from '../ui/ShopScreen';
 import { judge } from '../systems/SinGrace';
@@ -127,6 +127,15 @@ export class Game {
       if (document.hidden) this.pause();
     });
     this.resize();
+    // ?gift tester link: one-time 10,000 coins on this device (TESTING ONLY — remove before release)
+    if (new URLSearchParams(location.search).has('gift')) {
+      const got = giveTesterGift(this.save);
+      const banner = document.createElement('div');
+      banner.className = 'gift-banner';
+      banner.textContent = got ? `+${got.toLocaleString()} coins — tester gift! Open the SHOP.` : 'Tester gift already used on this phone.';
+      uiRoot.appendChild(banner);
+      setTimeout(() => banner.remove(), 4000);
+    }
     this.showMenu();
     // daily reward pop-up (Decisions log #27)
     this.shopScreen.showDaily(() => this.showMenu());

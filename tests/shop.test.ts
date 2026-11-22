@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ABILITIES, AbilitySystem } from '../src/systems/Abilities';
 import { SaveData, type KeyValueStore } from '../src/systems/SaveData';
-import { DAILY_REWARDS, Shop, SHOP_ITEMS } from '../src/systems/Shop';
+import { DAILY_REWARDS, giveTesterGift, Shop, SHOP_ITEMS } from '../src/systems/Shop';
 
 function fresh(wallet = 0) {
   const mem: Record<string, string> = {};
@@ -93,5 +93,14 @@ describe('Wallet', () => {
     save.recordRun(100, 100, 40);
     save.recordJudgment(80, true, false, 500);
     expect(save.data.wallet).toBe(540);
+  });
+});
+
+describe('Tester gift (?gift link, testing only)', () => {
+  it('gives 10,000 coins once per device', () => {
+    const { save } = fresh(50);
+    expect(giveTesterGift(save)).toBe(10000);
+    expect(giveTesterGift(save)).toBe(0);
+    expect(save.data.wallet).toBe(10050);
   });
 });

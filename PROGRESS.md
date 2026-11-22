@@ -7,6 +7,7 @@ Backup link (private to the owner): https://claude.ai/artifact/9bWTMjYKWmHtekqSX
 Add `?stage=` to the play link to start right at a stage, e.g.
 https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gate, bridges, kingdom).
 Ascended State without passing judgment first: https://frmconnect.github.io/heaven-and-hell/?ascended (doesn't change the save).
+One-time 10,000 tester coins for the shop: https://frmconnect.github.io/heaven-and-hell/?gift (once per phone).
 
 ## Current phase
 Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — Economy & customization: **built and tested by Claude; waiting for the owner's phone play-test.**
@@ -122,6 +123,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 7. Polish & release (art, music, performance, Capacitor builds, store release)
 
 ## Known bugs / limits
+- **MUST DO before release (Phase 7):** remove the test links — `?gift` (free coins), `?ascended`, `?stage=`.
 - FIXED: a ?stage= test link showed a big CONTINUE button (saved checkpoint) that went to Heaven's Gate instead of the chosen stage. Test links now show one START button for that stage (found by the owner).
 - FIXED: Level 2 (Celestial Bridges) obstacles were hard to see (pale crystal on a pale bridge). Now royal blue with gold edges; gaps are dark holes with glowing outlines. Level 3 obstacles changed to white marble so they stand out on the gold floor (found by the owner).
 - FIXED: a long swipe from an outer lane jumped two lanes to the far side. Now each swipe moves exactly one lane (found by the owner on their phone).

@@ -140,3 +140,15 @@ export class Shop {
     return coins;
   }
 }
+
+/** Coins given once by the ?gift tester link. TESTING ONLY — remove before release (Phase 7). */
+export const TESTER_GIFT = 10000;
+
+/** Give the one-time tester gift. Returns the coins given (0 if already given on this device). */
+export function giveTesterGift(save: SaveData): number {
+  if (save.data.testerGift) return 0;
+  save.data.testerGift = 1;
+  save.data.wallet += TESTER_GIFT;
+  save.save();
+  return TESTER_GIFT;
+}
