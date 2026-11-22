@@ -10,7 +10,7 @@ Ascended State without passing judgment first: https://frmconnect.github.io/heav
 One-time 10,000 tester coins for the shop: https://frmconnect.github.io/heaven-and-hell/?gift (once per phone).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — Economy & customization: **built and tested by Claude; waiting for the owner's phone play-test.**
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — **Complete** (owner play-tested: prices feel right, wings "the perfect size", everything works). Next: Phase 6 — Global competition (online leaderboards).
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -118,7 +118,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 2. ~~Heaven ascension~~ (done)
 3. ~~Sin, Grace & judgment~~ (done)
 4. ~~Ascended State~~ (done)
-5. ~~Economy & customization~~ (built)
+5. ~~Economy & customization~~ (done)
 6. Global competition (accounts, leaderboards, score validation)
 7. Polish & release (art, music, performance, Capacitor builds, store release)
 
@@ -146,6 +146,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - Backup play link: `scripts/make-single-file.mjs` packs the build into one file, published as a private claude.ai page.
 
 ## Open design decisions
+- More shop items: owner will suggest ideas.
 - **Journey length:** currently ~9 minutes for a good run (target 10–15). Tune after play-testing.
 - Final game name (working title "Heaven & Hell")
 - Exactly how runs vary after a failed judgment (see Decisions log in GAME_DESIGN.md)
