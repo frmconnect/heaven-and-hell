@@ -61,7 +61,8 @@ export class Screens {
   constructor(root: HTMLElement, h: ScreenHandlers) {
     this.handlers = h;
     this.menu = this.make(root, `
-      <div class="title">HEAVEN<span class="amp">&amp;</span>HELL</div>
+      <div class="title">FINAL<br/>FREEDOM</div>
+      <div class="subtitle">Hell to Heaven</div>
       <div class="tagline">Escape Hell. Climb to Heaven. Face Judgment.<br/>Earn Freedom. Compete for Eternity.</div>
       <button class="big-btn" data-continue>CONTINUE</button>
       <div class="sub" data-continue-note style="margin-top:8px">from Heaven's Gate</div>

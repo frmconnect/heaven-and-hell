@@ -1,8 +1,8 @@
-# GAME DESIGN DOCUMENT — Heaven & Hell (working title)
+# GAME DESIGN DOCUMENT — Final Freedom (formerly "Heaven & Hell")
 
 ## DECISIONS LOG (overrides anything below that conflicts)
 
-1. **Name:** Working title changed from "Heaven's Gate" to **"Heaven & Hell"**. Final name still open. Inside the game, "Heaven's Gate" stays as the name of the gate/milestone.
+1. **Name:** Working title changed from "Heaven's Gate" to **"Heaven & Hell"**. Final name: **Final Freedom** (see #34). Inside the game, "Heaven's Gate" stays as the name of the gate/milestone.
 2. **Engine:** **Three.js + Vite + TypeScript (web first)** instead of Unity, because the owner doesn't code and works from a phone: Claude can build and test everything, and every version is playable from a link. Package for Android/iOS with Capacitor later. Section 17's system list and game states still apply, written in TypeScript.
 3. **Failing judgment:** Like other free runners, the player **starts again from the beginning in Hell**. To keep restarts fresh, each new attempt changes things up: obstacle patterns, spacing and timing are varied per run, so it's never the exact same course twice. Variation rule (Phase 3): every attempt gets a brand-new random course (new obstacle rows, spacing, souls, temptations and Miracles).
 4. **Journey length:** Keep the full journey to God short enough that restarting isn't painful (start with ~10–15 minutes and tune through play-testing).
@@ -35,6 +35,7 @@
 31. **Boards (owner, Phase 6):** Daily, weekly and all-time, each showing your own best and rank. Only Ascended State scores (Decisions log rule: competition unlocks after judgment).
 32. **Leaderboard defaults (Claude's proposal, owner can change):** Each phone gets an anonymous player ID (no sign-in, email or personal info). The server checks every score for plausibility (speed, score vs distance, coins) and limits how often one player can submit. One entry per player per board (their best). Offline: the game keeps working and sends your best score next time you're online.
 33. **Music (owner):** The owner is making original music for the game. Add a Settings screen with music options: pick one song or shuffle (plus volume / music on-off, sound effects on-off). Build this when the owner's songs are ready (Phase 7 polish). Record each song in `ASSETS.md` as the owner's original work.
+34. **Final name (owner):** **Final Freedom** — store title "Final Freedom: Hell to Heaven" (29 characters). The owner searched the trademark database and found no "Final Freedom"; only unrelated "Final …" names. Inside the game, "Heaven's Gate" stays the name of the gate. (Replaces the working title in #1.)
 
 ---
 

@@ -43,6 +43,7 @@ html, body {
 .screen.on { display: flex; }
 .title { font-size: clamp(40px, 13vw, 72px); font-weight: 900; line-height: .95; letter-spacing: 2px; background: linear-gradient(180deg, #fff8e0 0%, #ffd27a 40%, #ff5a1a 75%, #a3140c 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 12px rgba(255,60,0,.6)); }
 .amp { display: block; font-size: .5em; margin: 6px 0; color: #ffcf8a; -webkit-text-fill-color: #ffcf8a; }
+.subtitle { margin-top: 6px; font-size: 15px; font-weight: 800; letter-spacing: 6px; text-transform: uppercase; color: #ffcf8a; text-shadow: 0 0 12px rgba(255,90,20,.6); }
 .tagline { margin-top: 14px; font-size: 14px; letter-spacing: 1px; opacity: .85; max-width: 320px; line-height: 1.5; }
 .big-btn { margin-top: 28px; min-width: 220px; padding: 18px 30px; border-radius: 16px; border: 0; font-size: 22px; font-weight: 900; letter-spacing: 3px; color: #2a0500; background: linear-gradient(180deg, #ffe08a, #ff8a1a 60%, #e0400a); box-shadow: 0 6px 0 #7a1a04, 0 10px 30px rgba(255,80,0,.5); }
 .big-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #7a1a04; }

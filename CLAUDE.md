@@ -1,4 +1,4 @@
-# CLAUDE.md — Heaven & Hell (working title)
+# CLAUDE.md — Final Freedom (formerly "Heaven & Hell")
 
 Read this file at the start of every session. Then read `PROGRESS.md` to see where we left off.
 
@@ -10,6 +10,8 @@ Read this file at the start of every session. Then read `PROGRESS.md` to see whe
 - **Never silently change the game design.** `GAME_DESIGN.md` is the source of truth. If something there seems like a bad idea, say so and suggest alternatives, but let the owner decide.
 
 ## What the game is
+**Name: Final Freedom** (store title "Final Freedom: Hell to Heaven"; GAME_DESIGN.md Decisions log #34). The repo and save data keep the old "heaven-and-hell" id.
+
 A 3D mobile endless runner (Temple Run / Subway Surfers style) with a journey:
 **Hell → Stairway to Heaven → Heaven's Gate → Heavenly levels → God (judgment) → Ascended State → endless mode → leaderboards.**
 Escape Hell. Climb to Heaven. Face Judgment. Earn Freedom. Compete for Eternity.

@@ -1,4 +1,4 @@
-# Heaven & Hell — 3D models and Blender guide
+# Final Freedom — 3D models and Blender guide
 
 Every 3D model in the game, exported as **.glb** files (the standard 3D format; Blender opens it directly).
 Use them to look at, improve or replace the game's art — or send them to an artist as the starting point.

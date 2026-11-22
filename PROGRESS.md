@@ -1,4 +1,4 @@
-# PROGRESS — Heaven & Hell
+# PROGRESS — Final Freedom
 
 **Play-test link:** https://frmconnect.github.io/heaven-and-hell/ (updates automatically on every push to `main`)
 Backup link (private to the owner): https://claude.ai/artifact/9bWTMjYKWmHtekqSXBgnHm
@@ -168,6 +168,5 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - **Music:** owner is making original songs (Decisions log #33). When ready: Settings screen with music on/off, volume, choose a song or shuffle; sound effects on/off.
 - More shop items: owner will suggest ideas.
 - **Journey length:** currently ~9 minutes for a good run (target 10–15). Tune after play-testing.
-- Final game name (working title "Heaven & Hell")
 - Exactly how runs vary after a failed judgment (see Decisions log in GAME_DESIGN.md)
 - Art source for final version (free CC0 models vs. commissioned artist)

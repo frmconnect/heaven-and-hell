@@ -5,7 +5,7 @@ const out = process.argv[2] ?? 'dist-single/heaven-and-hell.html';
 const files = readdirSync('dist/assets');
 const js = readFileSync('dist/assets/' + files.find((f) => f.endsWith('.js')), 'utf8').replace(/<\/script/gi, '<\\/script');
 const css = readFileSync('dist/assets/' + files.find((f) => f.endsWith('.css')), 'utf8');
-const html = `<title>Heaven &amp; Hell</title>
+const html = `<title>Final Freedom</title>
 <meta name="theme-color" content="#1a0503">
 <style>:root{color-scheme:dark}${css}</style>
 <div id="game"></div>
