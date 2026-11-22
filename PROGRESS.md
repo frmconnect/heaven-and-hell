@@ -141,6 +141,13 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 
 - When the Devil or the Shadow is right on your heels it partly hides the player (only just before it catches you).
 
+## Art pack (for Blender / artists)
+- `art/models/` — all 70 game models as .glb (characters, wings, obstacles per world, scenery, track, Heaven's Gate, pickups)
+- `art/BLENDER_GUIDE.md` — how to open them in Blender, size/placement/triangle rules, animation names, export settings, how to send models back (`art/incoming/`)
+- `art/heaven-and-hell-3d-models.zip` — the guide + all models in one download
+- Refresh after art changes: `node scripts/export-models.cjs`
+- `ASSETS.md` — who made each asset and its licence
+
 ## Technical decisions
 - Supabase project: https://aiwocmrtanrrhvzeugrw.supabase.co (publishable key in `src/core/online.ts` — public by design). Never commit the secret/service_role key.
 - Claude's cloud environment "heaven-and-hell" allows the Supabase host and frmconnect.github.io so the leaderboard and published site can be tested.
