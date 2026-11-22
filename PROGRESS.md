@@ -10,7 +10,7 @@ Ascended State without passing judgment first: https://frmconnect.github.io/heav
 One-time 10,000 tester coins for the shop: https://frmconnect.github.io/heaven-and-hell/?gift (once per phone).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — **Complete** (owner play-tested). Phase 6 — Online leaderboards: **built and tested against a pretend server; waiting for the owner to create the free Supabase project** (steps in `supabase/SETUP.md`).
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — **Complete** (owner play-tested). Phase 6 — Online leaderboards: **LIVE** on the owner's Supabase project. Server rules checked live (impossible score / bad name refused, table not directly readable). Waiting for the first real Ascended score from the owner's phone.
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -87,7 +87,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - Daily reward pop-up: 7-day streak 100, 150, 200, 300, 400, 600, 1,000 coins; missing a day restarts it
 - No real-money purchases (decide in Phase 7)
 
-## Phase 6 (built — needs the Supabase project to go live)
+## Phase 6 (built — live)
 - LEADERBOARD button on the menu: TODAY / THIS WEEK / ALL TIME tabs, top 50, your row highlighted, "Your best · rank #N of M"
 - Choose a heavenly name (6 generated choices, "show other names"; no typing); change it any time
 - Only Ascended State scores are sent; each phone has an anonymous player ID (no sign-in or personal info)
@@ -129,7 +129,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 3. ~~Sin, Grace & judgment~~ (done)
 4. ~~Ascended State~~ (done)
 5. ~~Economy & customization~~ (done)
-6. ~~Global competition~~ (built; waiting for Supabase project)
+6. ~~Global competition~~ (built, live)
 7. Polish & release (art, music, performance, Capacitor builds, store release)
 
 ## Known bugs / limits
@@ -142,6 +142,8 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - When the Devil or the Shadow is right on your heels it partly hides the player (only just before it catches you).
 
 ## Technical decisions
+- Supabase project: https://aiwocmrtanrrhvzeugrw.supabase.co (publishable key in `src/core/online.ts` — public by design). Never commit the secret/service_role key.
+- Claude's cloud environment "heaven-and-hell" allows the Supabase host and frmconnect.github.io so the leaderboard and published site can be tested.
 - Web-first with Three.js so Claude can build and test everything end to end and the owner can play each version on a phone. Package with Capacitor for Android/iOS later.
 - Game rules (`src/core/RunSession.ts` and friends) are separate from the 3D drawing, so they can be tested by a robot player without a screen.
 - All balancing numbers live in `src/core/config.ts`.
