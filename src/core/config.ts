@@ -71,8 +71,9 @@ export const CONFIG = {
     maxMultiplier: 5,
   },
   ability: {
-    chargePerCoin: 0.04, // 25 coins fill the button
-    chargePerMetre: 0.0012, // clean running also charges it slowly
+    // owner play-test: charging was too fast — now about once every 30 seconds of good running
+    chargePerCoin: 0.01, // 100 coins fill the button
+    chargePerMetre: 0.0004, // clean running alone fills it in 2,500 m
     flightHeight: 3.4,
     slowMotionScale: 0.5,
     magnetRange: 10,

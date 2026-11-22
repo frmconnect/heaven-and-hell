@@ -9,7 +9,7 @@ https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gat
 Ascended State without passing judgment first: https://frmconnect.github.io/heaven-and-hell/?ascended (doesn't change the save).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — Ascended State: **built and tested by Claude; waiting for the owner's phone play-test.**
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — Ascended State: **built; owner play-tested** (button easy to tap, Flight Burst feels good; asked for slower charging — done). Waiting for more play-testing.
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -67,7 +67,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - Starts faster (15 m/s, up to 32) and keeps getting harder (obstacle gaps keep shrinking)
 - No chaser: "YOUR LIGHT" meter; 3 stumbles close together = "Your light went out!"
 - Score multiplier x1→x5: +1 every 250 m without a stumble; a stumble resets to x1
-- Ability button (bottom right) fills as you collect coins and run cleanly; tap when full (or E/Enter on a computer)
+- Ability button (bottom right) fills as you collect coins and run cleanly; tap when full (or E/Enter on a computer). Slowed down after owner play-test (was ~10 s, now ~30 s per charge: 100 coins, or 2,500 m of clean running)
   - Flight Burst (fly above everything 3 s) — unlocked on ascending
   - Slow Motion (world at half speed 4 s) — unlocks at 1,500 m in an Ascended run
   - Celestial Magnet (collects all coins close ahead, any lane, 8 s) — unlocks at 3,000 m
