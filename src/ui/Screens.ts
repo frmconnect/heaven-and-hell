@@ -14,6 +14,7 @@ export interface ScreenHandlers {
   onSelectAbility: (id: AbilityId) => void;
   onOpenShop: () => void;
   onOpenBoard: () => void;
+  onOpenSettings: () => void;
 }
 
 /** What the menu needs to know about the Ascended State. */
@@ -72,7 +73,7 @@ export class Screens {
         <div class="best" data-asc-best></div>
       </div>
       <button class="big-btn" data-play>RUN</button>
-      <div class="menu-row"><button class="ghost-btn" data-shop>SHOP</button><button class="ghost-btn" data-board>LEADERBOARD</button></div>
+      <div class="menu-row"><button class="ghost-btn" data-shop>SHOP</button><button class="ghost-btn" data-board>LEADERBOARD</button><button class="ghost-btn" data-settings>SETTINGS</button></div>
       <div class="wallet"><span class="coin-dot"></span><span data-wallet>0</span></div>
       <div class="best" data-best></div>
       <div class="build">Version ${typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}</div>
@@ -120,6 +121,7 @@ export class Screens {
     bind(this.menu, '[data-asc]', h.onAscendedRun);
     bind(this.menu, '[data-shop]', h.onOpenShop);
     bind(this.menu, '[data-board]', h.onOpenBoard);
+    bind(this.menu, '[data-settings]', h.onOpenSettings);
     bind(this.over, '[data-asc-again]', h.onAscendedRun);
   }
 

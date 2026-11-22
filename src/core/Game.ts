@@ -15,7 +15,9 @@ import { LeaderboardScreen } from '../ui/LeaderboardScreen';
 import { TrailRenderer } from '../player/TrailRenderer';
 import { ShopScreen } from '../ui/ShopScreen';
 import { judge } from '../systems/SinGrace';
+import { AudioManager } from '../audio/AudioManager';
 import { HUD } from '../ui/HUD';
+import { SettingsScreen } from '../ui/SettingsScreen';
 import { Screens } from '../ui/Screens';
 import { CoinRenderer } from '../world/CoinRenderer';
 import { Crumble } from '../world/Crumble';
@@ -50,6 +52,12 @@ export class Game {
   private shopScreen: ShopScreen;
   private lb = new Leaderboard(ONLINE);
   private boardScreen: LeaderboardScreen;
+  private audio: AudioManager;
+  private settingsScreen: SettingsScreen;
+  private coinStreak = 0;
+  private lastCoinAt = 0;
+  private wasAirborne = false;
+  private lastHeartbeat = 0;
   private hud: HUD;
   private screens: Screens;
   private session: RunSession;
@@ -79,6 +87,13 @@ export class Game {
     this.shop = new Shop(this.save);
     this.session = new RunSession(1);
 
+    this.audio = new AudioManager({ sfxOn: !!this.save.data.sfxOn, sfxVolume: this.save.data.sfxVolume, ambienceOn: !!this.save.data.ambienceOn });
+    this.audio.ambience('hell');
+    // a soft tap sound for every menu button
+    uiRoot.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest('button');
+      if (b && !b.matches('[data-buy],[data-up],[data-claim],[data-sound],[data-ability]')) this.audio.play('tap');
+    });
     this.hud = new HUD(uiRoot, () => this.pause(), () => this.useAbility());
     this.screens = new Screens(uiRoot, {
       onPlay: () => this.startRun({}),
@@ -104,6 +119,10 @@ export class Game {
       onOpenBoard: () => {
         this.screens.hideAll();
         this.boardScreen.open();
+      },
+      onOpenSettings: () => {
+        this.screens.hideAll();
+        this.settingsScreen.open();
       },
     });
     // anonymous player id for the online leaderboard (Decisions log #32)
@@ -136,7 +155,12 @@ export class Game {
         this.showMenu();
       },
       (id) => isUnlocked(id, this.save.data.ascendedBestDistance),
+      (name) => this.audio.play(name),
     );
+    this.settingsScreen = new SettingsScreen(uiRoot, this.save, this.audio, () => {
+      this.settingsScreen.close();
+      this.showMenu();
+    });
     this.applyLooks();
     // desktop: E or Enter uses the ability
     window.addEventListener('keydown', (e) => {
@@ -145,7 +169,13 @@ export class Game {
 
     const input = new InputController(mount);
     input.onAction((a) => {
-      if (this.state.isRunning) this.session.act(a);
+      if (!this.state.isRunning) return;
+      const m = this.session.motion;
+      const before = { lane: m.lane, vy: m.vy, sliding: m.sliding };
+      this.session.act(a);
+      if (m.lane !== before.lane) this.audio.play('lane');
+      else if (a === 'jump' && m.vy > 0 && before.vy <= 0) this.audio.play('jump');
+      else if (a === 'slide' && m.sliding && !before.sliding) this.audio.play('slide');
     });
 
     this.state.onChange((to) => {
@@ -154,7 +184,10 @@ export class Game {
 
     window.addEventListener('resize', () => this.resize());
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) this.pause();
+      if (document.hidden) {
+        this.pause();
+        this.audio.setPaused(true);
+      } else if (!this.state.isRunning && this.state.state !== GameState.Paused) this.audio.setPaused(false);
     });
     this.resize();
     // ?gift tester link: one-time 10,000 coins on this device (TESTING ONLY — remove before release)
@@ -286,6 +319,9 @@ export class Game {
     this.screens.hideAll();
     this.state.go(GameState.AscendedRun);
     this.hud.toast('FREE TO ROAM', 1.8, this.session.stage.name);
+    this.audio.setPaused(false);
+    this.audio.play('run');
+    this.audio.ambience(this.session.stage.id);
   }
 
   /** For play-testing: add ?stage=gardens (or stairway, gate, bridges, kingdom) to the link to start there. */
@@ -320,6 +356,10 @@ export class Game {
     this.hud.setHeaven(stage.id !== 'hell');
     if (d > 0) this.hud.toast(stage.level ? `LEVEL ${stage.level}` : stage.name.toUpperCase(), 2, stage.level ? stage.name : '');
     else this.hud.toast('RUN!', 0.9);
+    this.audio.setPaused(false);
+    this.audio.play('run');
+    this.audio.ambience(stage.id);
+    if (d === 0) setTimeout(() => this.audio.play('devilRoar'), 300);
     if (this.runCount === 1 && this.save.data.runs < 3 && d === 0) {
       this.hud.hint('Swipe ← → ↑ ↓ to escape the Devil');
       setTimeout(() => this.hud.hint(null), 4000);
@@ -327,11 +367,15 @@ export class Game {
   }
 
   private pause(): void {
-    if (this.state.pause()) this.screens.showPause(this.session.stage.id !== 'hell');
+    if (this.state.pause()) {
+      this.screens.showPause(this.session.stage.id !== 'hell');
+      this.audio.setPaused(true);
+    }
   }
 
   private resume(): void {
     if (this.state.resume()) {
+      this.audio.setPaused(false);
       this.screens.hideAll();
       this.last = performance.now();
     }
@@ -343,6 +387,8 @@ export class Game {
       this.setMap(JOURNEY_MAP);
       this.player.reset();
       this.crumble.stop();
+      this.audio.setPaused(false);
+      this.audio.ambience('hell');
       this.showMenu();
     }
   }
@@ -375,6 +421,7 @@ export class Game {
   private handleEvents(): void {
     const s = this.session;
     for (const e of s.drainEvents()) {
+      this.soundFor(e, s);
       switch (e.type) {
         case 'stumble':
           this.player.stumble();
@@ -463,7 +510,54 @@ export class Game {
     if (!this.gateFlashed && !s.ascended && s.distance > GATE_Z) {
       this.gateFlashed = true;
       this.hud.flash();
-      setTimeout(() => this.hud.toast('CHECKPOINT', 1.6, 'You can restart here'), 900);
+      setTimeout(() => {
+        this.hud.toast('CHECKPOINT', 1.6, 'You can restart here');
+        this.audio.play('checkpoint');
+      }, 900);
+    }
+  }
+
+  /** The sound effect for each thing that happens in a run (Decisions log #36). */
+  private soundFor(e: ReturnType<RunSession['drainEvents']>[number], s: RunSession): void {
+    const a = this.audio;
+    switch (e.type) {
+      case 'coin': {
+        const now = performance.now();
+        this.coinStreak = now - this.lastCoinAt < 600 ? Math.min(12, this.coinStreak + 1) : 0;
+        this.lastCoinAt = now;
+        a.play('coin', this.coinStreak, 20);
+        break;
+      }
+      case 'stumble':
+        a.play('stumble');
+        if (!s.ended && s.devil.danger > 0.6) setTimeout(() => a.play('heartbeat'), 250);
+        break;
+      case 'end':
+        if (e.reason === 'crash') a.play('crash');
+        else if (e.reason === 'fall') a.play(s.stage.id === 'hell' ? 'fallLava' : 'fallVoid');
+        else if (s.chaser === 'devil') a.play('devilRoar');
+        else if (s.chaser === 'shadow') a.play('shadowGrab');
+        else a.play('crash');
+        break;
+      case 'devilGivesUp':
+        a.play('devilGivesUp');
+        setTimeout(() => a.play('shadowRise'), 1600);
+        break;
+      case 'stage':
+        a.ambience(e.stage.id);
+        a.play(e.stage.id === 'gate' ? 'gate' : 'stage');
+        break;
+      case 'soulHelped': a.play('soulSaved'); break;
+      case 'soulLost': a.play('soulLost'); break;
+      case 'temptationTaken': a.play('temptation'); break;
+      case 'resisted': a.play('resisted'); break;
+      case 'miracle': a.play('miracle'); break;
+      case 'shieldUsed': a.play('shieldBreak'); break;
+      case 'levelComplete': a.play('levelComplete'); break;
+      case 'multiplier': a.play('multiplier', e.value - 2); break;
+      case 'abilityReady': a.play('abilityReady'); break;
+      case 'abilityStart': a.play(e.id === 'flight' ? 'flight' : e.id === 'slowmo' ? 'slowmo' : 'magnet'); break;
+      case 'journeyComplete': a.ambience('god'); break;
     }
   }
 
@@ -476,6 +570,14 @@ export class Game {
       // Slow Motion slows the world; ability timers use real time
       s.update(dt * s.timeScale, dt);
       this.handleEvents();
+      // landing thump, and a heartbeat while the chaser is right behind you
+      const air = s.motion.y > 0.05;
+      if (this.wasAirborne && !air && !s.over) this.audio.play('land');
+      this.wasAirborne = air;
+      if (s.chaser !== 'none' && s.devil.danger > 0.75 && !s.over && performance.now() - this.lastHeartbeat > 900) {
+        this.lastHeartbeat = performance.now();
+        this.audio.play('heartbeat');
+      }
     } else if (running && s.over) {
       this.endTimer -= dt;
       if (this.endTimer <= 0) this.finishRun();
@@ -554,13 +656,19 @@ export class Game {
       this.save.recordRun(s.score.score, s.distance, s.score.coins);
       this.save.data.journeysCompleted += 1;
       this.save.recordJudgment(j.percent, j.passed, j.verdict === 'perfect', j.rewardCoins);
-      if (this.state.go(GameState.Judgment)) this.screens.showJudgment(j, s.moral.record);
+      if (this.state.go(GameState.Judgment)) {
+        this.screens.showJudgment(j, s.moral.record);
+        this.audio.ambience('');
+        // God's verdict sounds as the verdict line appears
+        setTimeout(() => this.audio.play(j.passed ? 'judgePass' : 'judgeFail'), 4400);
+      }
       return;
     }
     if (!s.ended) return;
     if (s.ascended) {
       // the competitive score (Decisions log #23)
       const unlockAt = Object.fromEntries(ABILITY_ORDER.map((id) => [id, ABILITIES[id].unlockDistance]));
+      this.audio.play('gameOver');
       const r = this.save.recordAscended(s.score.score, s.distance, s.score.coins, unlockAt);
       this.state.go(GameState.GameOver);
       this.screens.showGameOver({
@@ -572,6 +680,7 @@ export class Game {
       this.submitAscended(s.score.score, s.distance, s.score.coins, s.time);
       return;
     }
+    this.audio.play('gameOver');
     const isBest = this.save.recordRun(s.score.score, s.distance, s.score.coins);
     const afterGate = s.distance > stageStart('gardens') && this.save.data.checkpoint > 0;
     this.state.go(GameState.GameOver);

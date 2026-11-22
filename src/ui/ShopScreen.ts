@@ -19,7 +19,14 @@ export class ShopScreen {
   private tab: Tab = 'outfit';
   private daily: HTMLDivElement;
 
-  constructor(root: HTMLElement, private shop: Shop, private onChange: () => void, private onClose: () => void, private unlockedAbility: (id: AbilityId) => boolean) {
+  constructor(
+    root: HTMLElement,
+    private shop: Shop,
+    private onChange: () => void,
+    private onClose: () => void,
+    private unlockedAbility: (id: AbilityId) => boolean,
+    private sound: (name: 'buy' | 'denied' | 'daily') => void = () => {},
+  ) {
     this.el = document.createElement('div');
     this.el.className = 'screen shop';
     this.el.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
@@ -101,8 +108,8 @@ export class ShopScreen {
     this.el.querySelectorAll<HTMLElement>('[data-buy]').forEach((b) => b.addEventListener('click', () => {
       const r = s.buy(b.dataset.buy!);
       this.render();
-      if (r === 'coins') this.toast('Not enough coins yet — keep running!');
-      else if (r === 'ok') { this.toast('Bought and equipped!'); this.onChange(); }
+      if (r === 'coins') { this.toast('Not enough coins yet — keep running!'); this.sound('denied'); }
+      else if (r === 'ok') { this.toast('Bought and equipped!'); this.sound('buy'); this.onChange(); }
     }));
     this.el.querySelectorAll<HTMLElement>('[data-equip]').forEach((b) => b.addEventListener('click', () => {
       s.equip(b.dataset.equip!);
@@ -112,8 +119,8 @@ export class ShopScreen {
     this.el.querySelectorAll<HTMLElement>('[data-up]').forEach((b) => b.addEventListener('click', () => {
       const r = s.upgrade(b.dataset.up as AbilityId);
       this.render();
-      if (r === 'coins') this.toast('Not enough coins yet — keep running!');
-      else if (r === 'ok') this.toast('Upgraded!');
+      if (r === 'coins') { this.toast('Not enough coins yet — keep running!'); this.sound('denied'); }
+      else if (r === 'ok') { this.toast('Upgraded!'); this.sound('buy'); }
     }));
   }
 
@@ -129,6 +136,7 @@ export class ShopScreen {
       <button class="big-btn" data-claim>CLAIM ${DAILY_REWARDS[day - 1]} COINS</button>`;
     this.daily.querySelector('[data-claim]')?.addEventListener('click', () => {
       this.shop.claimDaily();
+      this.sound('daily');
       this.daily.classList.remove('on');
       onDone();
     });

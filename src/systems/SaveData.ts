@@ -48,6 +48,10 @@ export interface SaveState {
   pendDistance: number;
   pendCoins: number;
   pendDuration: number;
+  // Settings (Decisions log #33, #36)
+  sfxOn: number; // 1 = on
+  sfxVolume: number; // 0..1
+  ambienceOn: number;
 }
 
 export interface KeyValueStore {
@@ -65,6 +69,7 @@ export const defaultSave = (): SaveState => ({
   wallet: 0, walletReady: 1, owned: [], outfit: 'pilgrim', wings: 'none', trail: 'none',
   upFlight: 0, upSlowmo: 0, upMagnet: 0, dailyDay: 0, dailyStreak: 0, testerGift: 0,
   playerId: '', playerName: '', pendScore: 0, pendDistance: 0, pendCoins: 0, pendDuration: 0,
+  sfxOn: 1, sfxVolume: 0.8, ambienceOn: 1,
 });
 
 const STRING_KEYS = ['outfit', 'wings', 'trail', 'playerId', 'playerName'] as const;
