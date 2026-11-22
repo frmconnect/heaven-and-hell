@@ -8,7 +8,7 @@ Add `?stage=` to the play link to start right at a stage, e.g.
 https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gate, bridges, kingdom).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — Sin, Grace & judgment: **built and tested by Claude; waiting for the owner's phone play-test.**
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested: souls/temptations visible in time, judgment works). Next: Phase 4 — Ascended State.
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -86,7 +86,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 
 ## Remaining phases
 2. ~~Heaven ascension~~ (done)
-3. ~~Sin, Grace & judgment~~ (built)
+3. ~~Sin, Grace & judgment~~ (done)
 4. Ascended State (endless mode, abilities, difficulty scaling)
 5. Economy & customization (shop, cosmetics, upgrades, save/load)
 6. Global competition (accounts, leaderboards, score validation)
