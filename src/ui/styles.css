@@ -191,3 +191,19 @@ html, body {
 .screen.daily { background: radial-gradient(ellipse at 50% 40%, rgba(70,20,10,.97), rgba(10,1,0,.98)); z-index: 5; }
 .gift-banner { position: absolute; z-index: 10; left: 16px; right: 16px; top: calc(var(--safe-top) + 14px); padding: 12px 14px; border-radius: 14px; text-align: center; font-weight: 900; color: #3a2a00; background: linear-gradient(180deg, #fff2b0, #ffc23a); box-shadow: 0 6px 20px rgba(0,0,0,.4); animation: jfade .4s ease-out; }
 .build { position: absolute; bottom: calc(var(--safe-bottom) + 6px); left: 0; right: 0; font-size: 10px; opacity: .45; }
+
+/* Leaderboard */
+.screen.board { justify-content: flex-start; padding-top: calc(var(--safe-top) + 12px); background: radial-gradient(ellipse at 50% 20%, rgba(40,30,80,.96), rgba(8,4,20,.98)); }
+.board-panel { max-height: none; height: 100%; }
+.board-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.board-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 10px; background: rgba(255,255,255,.06); text-align: left; font-variant-numeric: tabular-nums; }
+.board-row.me { background: linear-gradient(90deg, rgba(255,210,87,.35), rgba(255,210,87,.12)); border: 1px solid rgba(255,210,87,.7); }
+.board-rank { width: 32px; text-align: center; font-weight: 900; }
+.board-who { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-me { font-size: 14px; color: #fff1a8; min-height: 18px; }
+.board-note { padding: 14px 6px; font-size: 14px; opacity: .8; line-height: 1.5; }
+.board-name { font-size: 13px; opacity: .85; padding-bottom: calc(var(--safe-bottom) + 6px); }
+.link-btn { background: none; border: 0; color: #ffd257; text-decoration: underline; font-size: 13px; padding: 0; }
+.name-grid { margin-top: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 360px; width: 100%; }
+.name-pick { padding: 14px 8px; border-radius: 12px; border: 1px solid rgba(255,220,150,.5); background: rgba(255,255,255,.08); color: var(--ink); font-size: 14px; font-weight: 800; }
+.online-note { margin-top: 8px; font-size: 15px; font-weight: 800; color: #fff1a8; }

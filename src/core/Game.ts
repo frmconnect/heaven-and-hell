@@ -9,6 +9,9 @@ import { PlayerAvatar } from '../player/PlayerAvatar';
 import { ABILITIES, ABILITY_ORDER, isUnlocked, type AbilityId } from '../systems/Abilities';
 import { SaveData } from '../systems/SaveData';
 import { giveTesterGift, itemById, Shop } from '../systems/Shop';
+import { Leaderboard, newPlayerId } from '../systems/Leaderboard';
+import { ONLINE } from './online';
+import { LeaderboardScreen } from '../ui/LeaderboardScreen';
 import { TrailRenderer } from '../player/TrailRenderer';
 import { ShopScreen } from '../ui/ShopScreen';
 import { judge } from '../systems/SinGrace';
@@ -45,6 +48,8 @@ export class Game {
   private trail: TrailRenderer;
   private shop: Shop;
   private shopScreen: ShopScreen;
+  private lb = new Leaderboard(ONLINE);
+  private boardScreen: LeaderboardScreen;
   private hud: HUD;
   private screens: Screens;
   private session: RunSession;
@@ -96,7 +101,32 @@ export class Game {
         this.screens.hideAll();
         this.shopScreen.open();
       },
+      onOpenBoard: () => {
+        this.screens.hideAll();
+        this.boardScreen.open();
+      },
     });
+    // anonymous player id for the online leaderboard (Decisions log #32)
+    if (!this.save.data.playerId) {
+      this.save.data.playerId = newPlayerId();
+      this.save.save();
+    }
+    this.boardScreen = new LeaderboardScreen(
+      uiRoot,
+      this.lb,
+      () => ({ id: this.save.data.playerId, name: this.save.data.playerName, ascended: this.save.data.ascended > 0 }),
+      (name) => {
+        this.save.data.playerName = name;
+        this.save.save();
+        void this.sendPending();
+      },
+      () => {
+        this.boardScreen.close();
+        this.showMenu();
+      },
+    );
+    // a score saved while offline gets sent now
+    void this.sendPending();
     this.shopScreen = new ShopScreen(
       uiRoot,
       this.shop,
@@ -153,6 +183,61 @@ export class Game {
       selected: this.selectedAbility(),
       unlocked: Object.fromEntries(ABILITY_ORDER.map((id) => [id, isUnlocked(id, this.save.data.ascendedBestDistance)])) as Record<AbilityId, boolean>,
     }, this.save.data.wallet);
+  }
+
+  /**
+   * Send the best unsent Ascended score to the online leaderboard (Decisions log #32).
+   * Returns a short message for the game-over screen.
+   */
+  private sending: Promise<string> | null = null;
+
+  private sendPending(): Promise<string> {
+    // only one send at a time (choosing a name and the game-over screen can both ask)
+    if (!this.sending) this.sending = this.doSendPending().finally(() => (this.sending = null));
+    return this.sending;
+  }
+
+  private async doSendPending(): Promise<string> {
+    const d = this.save.data;
+    if (!d.pendScore) return '';
+    if (!this.lb.configured) return '';
+    if (!d.playerName) return 'name';
+    const r = await this.lb.submit({ playerId: d.playerId, name: d.playerName, score: d.pendScore, distance: d.pendDistance, coins: d.pendCoins, duration: d.pendDuration });
+    if (!r.ok && r.error === 'offline') return 'Saved — it will go online next time you have internet.';
+    if (!r.ok && r.error === 'slow') return 'Saved — sending in a moment.';
+    // sent (or refused as impossible): either way it's done
+    d.pendScore = d.pendDistance = d.pendCoins = d.pendDuration = 0;
+    this.save.save();
+    if (!r.ok) return '';
+    const me = await this.lb.myRank('daily', d.playerId);
+    return me ? `Online: #${me.rank} today out of ${me.players}` : 'Your score is on the leaderboard!';
+  }
+
+  /** After an Ascended run: keep its score if it's your best unsent one, then try to send it. */
+  private submitAscended(score: number, distance: number, coins: number, duration: number): void {
+    const d = this.save.data;
+    if (score > d.pendScore) {
+      d.pendScore = score;
+      d.pendDistance = Math.floor(distance);
+      d.pendCoins = coins;
+      d.pendDuration = duration;
+      this.save.save();
+    }
+    if (!this.lb.configured) return;
+    this.screens.setOnlineNote('Sending your score…');
+    void this.sendPending().then((msg) => {
+      if (this.state.state !== GameState.GameOver) return;
+      if (msg === 'name') {
+        this.screens.setOnlineNote('Choose a name to join the online leaderboard.', {
+          label: 'CHOOSE NAME',
+          onClick: () => this.boardScreen.showNamePicker(() => {
+            this.boardScreen.close();
+            this.screens.setOnlineNote('Sending your score…');
+            void this.sendPending().then((m) => this.screens.setOnlineNote(m));
+          }),
+        });
+      } else this.screens.setOnlineNote(msg);
+    });
   }
 
   /** Put the equipped outfit, wings and trail on the runner (Decisions log #24). */
@@ -483,6 +568,8 @@ export class Game {
         best: this.save.data.ascendedBestScore, isNewBest: r.isBest, canContinue: false,
         ascended: { top: this.save.data.ascendedTop, rank: r.rank, bestMultiplier: s.score.bestMultiplier, unlocked: r.unlocked.map((id) => ABILITIES[id as AbilityId].name) },
       });
+      // only Ascended scores go online (the competitive score)
+      this.submitAscended(s.score.score, s.distance, s.score.coins, s.time);
       return;
     }
     const isBest = this.save.recordRun(s.score.score, s.distance, s.score.coins);

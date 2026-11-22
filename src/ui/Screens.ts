@@ -13,6 +13,7 @@ export interface ScreenHandlers {
   onAscendedRun: () => void; // endless Ascended State
   onSelectAbility: (id: AbilityId) => void;
   onOpenShop: () => void;
+  onOpenBoard: () => void;
 }
 
 /** What the menu needs to know about the Ascended State. */
@@ -70,7 +71,7 @@ export class Screens {
         <div class="best" data-asc-best></div>
       </div>
       <button class="big-btn" data-play>RUN</button>
-      <div class="menu-row"><button class="ghost-btn" data-shop>SHOP</button></div>
+      <div class="menu-row"><button class="ghost-btn" data-shop>SHOP</button><button class="ghost-btn" data-board>LEADERBOARD</button></div>
       <div class="wallet"><span class="coin-dot"></span><span data-wallet>0</span></div>
       <div class="best" data-best></div>
       <div class="build">Version ${typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}</div>
@@ -89,6 +90,7 @@ export class Screens {
       </div>
       <div class="new-best" data-new>NEW BEST!</div>
       <div data-asc-over></div>
+      <div class="online-note" data-online></div>
       <button class="big-btn" data-asc-again style="display:none">RUN AGAIN</button>
       <button class="big-btn" data-continue>TRY AGAIN</button>
       <div class="sub" style="margin-top:8px" data-continue-note>from Heaven's Gate</div>
@@ -116,6 +118,7 @@ export class Screens {
     bind(this.ascended, '[data-asc]', h.onAscendedRun);
     bind(this.menu, '[data-asc]', h.onAscendedRun);
     bind(this.menu, '[data-shop]', h.onOpenShop);
+    bind(this.menu, '[data-board]', h.onOpenBoard);
     bind(this.over, '[data-asc-again]', h.onAscendedRun);
   }
 
@@ -177,6 +180,20 @@ export class Screens {
     this.menu.classList.add('on');
   }
 
+  /** Online leaderboard result under the Ascended game-over stats. */
+  setOnlineNote(text: string, button?: { label: string; onClick: () => void }): void {
+    const el = this.q(this.over, '[data-online]');
+    el.textContent = text;
+    if (button) {
+      const b = document.createElement('button');
+      b.className = 'ghost-btn';
+      b.textContent = button.label;
+      b.addEventListener('click', button.onClick);
+      el.appendChild(document.createElement('br'));
+      el.appendChild(b);
+    }
+  }
+
   showPause(inHeaven: boolean): void {
     this.hideAll();
     this.pause.classList.toggle('heaven', inHeaven);
@@ -201,6 +218,7 @@ export class Screens {
     // Ascended State: run again in endless mode, show the local top 5
     const a = i.ascended;
     this.q(this.over, '[data-asc-again]').style.display = a ? '' : 'none';
+    this.q(this.over, '[data-online]').textContent = '';
     again.style.display = a ? 'none' : '';
     const box = this.q(this.over, '[data-asc-over]');
     box.innerHTML = a

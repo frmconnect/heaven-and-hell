@@ -41,6 +41,13 @@ export interface SaveState {
   dailyDay: number; // last day a daily reward was claimed (days since 1970)
   dailyStreak: number; // 1..7
   testerGift: number; // 1 = the one-time ?gift tester coins were given (remove before release)
+  // Phase 6: online leaderboard (Decisions log #29-32)
+  playerId: string; // anonymous id for this phone
+  playerName: string; // chosen heavenly name ('' = not chosen yet)
+  pendScore: number; // best Ascended score waiting to be sent (0 = none)
+  pendDistance: number;
+  pendCoins: number;
+  pendDuration: number;
 }
 
 export interface KeyValueStore {
@@ -57,9 +64,10 @@ export const defaultSave = (): SaveState => ({
   ascendedBestScore: 0, ascendedBestDistance: 0, ascendedRuns: 0, selectedAbility: 0, ascendedTop: [],
   wallet: 0, walletReady: 1, owned: [], outfit: 'pilgrim', wings: 'none', trail: 'none',
   upFlight: 0, upSlowmo: 0, upMagnet: 0, dailyDay: 0, dailyStreak: 0, testerGift: 0,
+  playerId: '', playerName: '', pendScore: 0, pendDistance: 0, pendCoins: 0, pendDuration: 0,
 });
 
-const STRING_KEYS = ['outfit', 'wings', 'trail'] as const;
+const STRING_KEYS = ['outfit', 'wings', 'trail', 'playerId', 'playerName'] as const;
 
 /** Saves progress on the device. Never throws: if storage is blocked, the game keeps working without saving. */
 export class SaveData {

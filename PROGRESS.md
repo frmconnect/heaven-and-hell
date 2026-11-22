@@ -10,7 +10,7 @@ Ascended State without passing judgment first: https://frmconnect.github.io/heav
 One-time 10,000 tester coins for the shop: https://frmconnect.github.io/heaven-and-hell/?gift (once per phone).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — **Complete** (owner play-tested: prices feel right, wings "the perfect size", everything works). Next: Phase 6 — Global competition (online leaderboards).
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — **Complete** (owner play-tested). Phase 6 — Online leaderboards: **built and tested against a pretend server; waiting for the owner to create the free Supabase project** (steps in `supabase/SETUP.md`).
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -87,8 +87,18 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - Daily reward pop-up: 7-day streak 100, 150, 200, 300, 400, 600, 1,000 coins; missing a day restarts it
 - No real-money purchases (decide in Phase 7)
 
+## Phase 6 (built — needs the Supabase project to go live)
+- LEADERBOARD button on the menu: TODAY / THIS WEEK / ALL TIME tabs, top 50, your row highlighted, "Your best · rank #N of M"
+- Choose a heavenly name (6 generated choices, "show other names"; no typing); change it any time
+- Only Ascended State scores are sent; each phone has an anonymous player ID (no sign-in or personal info)
+- Score checks on the server AND in the game (impossible speed, too many points for the distance, made-up names refused) + max one submission per 15 s per player
+- No internet: "Saved — it will go online next time you have internet"; sent automatically next launch
+- Server setup script: `supabase/setup.sql`; owner steps: `supabase/SETUP.md`; settings go in `src/core/online.ts`
+- Until set up, the leaderboard screen says it isn't switched on yet (game works normally)
+
 ## How it was tested
-- 75 automatic tests (`npm test`), incl. shop buying/equipping, upgrades capped at 3, daily streak, wallet; the Ascended map, multiplier, abilities and unlocks, Ascended top 5;, incl. the 3-stumble rule, the Devil→Shadow hand-over, judgment math (70/85/100), Miracle Shield, checkpoint keeping Sin/Grace
+- 86 automatic tests (`npm test`), incl. leaderboard client (fake server), score checks, heavenly names; shop buying/equipping, upgrades capped at 3, daily streak, wallet; the Ascended map, multiplier, abilities and unlocks, Ascended top 5;, incl. the 3-stumble rule, the Devil→Shadow hand-over, judgment math (70/85/100), Miracle Shield, checkpoint keeping Sin/Grace
+- Browser test (leaderboard) against a pretend server with the same rules: Ascended run → choose name → score sent once → rank shown → leaderboard tabs; offline → score kept and message shown
 - Browser test (shop): daily reward pop-up and claim, old save's coins become spendable, buying outfit/wings/trail, not-enough-coins message, upgrade, looks shown while running, everything kept after reload
 - Robot survives 4,000 m of the Ascended State on 5 random courses
 - Browser test (Ascended): menu ability picker, all 4 worlds, Flight Burst lifting the runner, 3 stumbles → "Your light went out!", Slow Motion unlock message, top 5, RUN AGAIN
@@ -119,7 +129,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 3. ~~Sin, Grace & judgment~~ (done)
 4. ~~Ascended State~~ (done)
 5. ~~Economy & customization~~ (done)
-6. Global competition (accounts, leaderboards, score validation)
+6. ~~Global competition~~ (built; waiting for Supabase project)
 7. Polish & release (art, music, performance, Capacitor builds, store release)
 
 ## Known bugs / limits
