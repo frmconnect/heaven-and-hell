@@ -14,9 +14,18 @@ export class PlayerAvatar {
   private phase = 0;
   private flash = 0;
   private fallY = 0;
+  private baseEmissive = new THREE.Color('#000000');
+  private flashColor = new THREE.Color('#ff2200');
   /** Flight Burst height (set by the game each frame). */
   fly = 0;
   private halo: THREE.Group;
+  private darkMat!: THREE.MeshStandardMaterial;
+  private hairMat!: THREE.MeshStandardMaterial;
+  private wingPivotL = new THREE.Group();
+  private wingPivotR = new THREE.Group();
+  private wingMat = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7, side: THREE.DoubleSide, flatShading: true, transparent: true, opacity: 1 });
+  private wingKind = 'none';
+  private wingTime = 0;
   private bubbleMat: THREE.MeshBasicMaterial;
 
   constructor(scene: THREE.Scene) {
@@ -24,6 +33,8 @@ export class PlayerAvatar {
     this.clothMat = new THREE.MeshStandardMaterial({ color: '#efe6d2', roughness: 0.9, flatShading: true, emissive: '#ff2200', emissiveIntensity: 0 });
     const dark = new THREE.MeshStandardMaterial({ color: '#4a3226', roughness: 0.9, flatShading: true });
     const hair = new THREE.MeshStandardMaterial({ color: '#3a2216', roughness: 1, flatShading: true });
+    this.darkMat = dark;
+    this.hairMat = hair;
 
     const torso = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.7, 0.32), this.clothMat);
     torso.position.y = 1.15;
@@ -65,6 +76,11 @@ export class PlayerAvatar {
     this.halo.visible = false;
     this.body.add(this.halo);
 
+    // wings (shop cosmetic): hinged at the shoulders, behind the back
+    this.wingPivotL.position.set(-0.12, 1.4, 0.18);
+    this.wingPivotR.position.set(0.12, 1.4, 0.18);
+    this.body.add(this.wingPivotL, this.wingPivotR);
+
     // the player faces away from the camera (towards -z)
     this.root.add(this.body);
     scene.add(this.root);
@@ -75,6 +91,46 @@ export class PlayerAvatar {
     this.flash = 0;
     this.body.rotation.set(0, 0, 0);
     this.body.position.set(0, 0, 0);
+  }
+
+  /** Outfit colours (shop cosmetic, Decisions log #24). */
+  setOutfit(look: { primary: string; secondary?: string; extra?: string; glow?: string }): void {
+    this.clothMat.color.set(look.primary);
+    this.clothMat.metalness = look.primary === '#ffcc40' ? 0.7 : 0;
+    this.clothMat.roughness = look.primary === '#ffcc40' ? 0.3 : 0.9;
+    this.darkMat.color.set(look.secondary ?? '#4a3226');
+    this.darkMat.emissive.set(look.glow ?? '#000000');
+    this.hairMat.color.set(look.extra ?? '#3a2216');
+    this.baseEmissive.set(look.glow ?? '#000000');
+  }
+
+  /** Wings (shop cosmetic): angel / bat / crystal / fire, or none. */
+  setWings(kind: string, look: { primary: string; glow?: string }): void {
+    if (kind === this.wingKind) return;
+    this.wingKind = kind;
+    for (const p of [this.wingPivotL, this.wingPivotR]) p.clear();
+    if (kind === 'none') return;
+    this.wingMat.color.set(look.primary);
+    this.wingMat.emissive.set(look.glow ?? '#000000');
+    this.wingMat.emissiveIntensity = kind === 'firewings' || kind === 'crystalwings' ? 1.2 : 0.4;
+    this.wingMat.opacity = kind === 'crystalwings' ? 0.8 : 1;
+    const shape = new THREE.Shape();
+    if (kind === 'batwings') {
+      shape.moveTo(0, 0); shape.lineTo(1.3, 0.55); shape.lineTo(1.1, 0.05); shape.lineTo(1.25, -0.35);
+      shape.lineTo(0.8, -0.15); shape.lineTo(0.7, -0.55); shape.lineTo(0.3, -0.25);
+    } else if (kind === 'crystalwings') {
+      shape.moveTo(0, 0); shape.lineTo(0.5, 0.75); shape.lineTo(1.25, 0.5); shape.lineTo(0.9, 0); shape.lineTo(1.1, -0.6); shape.lineTo(0.35, -0.3);
+    } else {
+      // feathered (angel) and flame (fire) wings share a curved outline
+      shape.moveTo(0, 0); shape.quadraticCurveTo(0.5, 0.9, 1.35, 0.7); shape.lineTo(1.15, 0.35); shape.lineTo(1.25, 0.1);
+      shape.lineTo(0.95, -0.05); shape.lineTo(1.0, -0.35); shape.lineTo(0.6, -0.3); shape.lineTo(0.5, -0.6); shape.quadraticCurveTo(0.15, -0.3, 0, 0);
+    }
+    const geo = new THREE.ShapeGeometry(shape);
+    const r = new THREE.Mesh(geo, this.wingMat);
+    const l = new THREE.Mesh(geo, this.wingMat);
+    l.scale.x = -1;
+    this.wingPivotR.add(r);
+    this.wingPivotL.add(l);
   }
 
   stumble(): void {
@@ -88,6 +144,11 @@ export class PlayerAvatar {
   }
 
   update(dt: number, m: PlayerMotion, speed: number, ended: string | null): void {
+    // wings flap: faster when running, wide open when flying
+    this.wingTime += dt * (speed > 0 ? 9 : 3);
+    const open = this.fly > 0.3 ? 0.15 : 0.55 + Math.sin(this.wingTime) * 0.35;
+    this.wingPivotR.rotation.y = -open;
+    this.wingPivotL.rotation.y = open;
     this.root.position.set(m.x, m.y + this.fly, 0);
     // lean into lane changes
     this.root.rotation.z = THREE.MathUtils.clamp(-(laneX(m.lane) - m.x) * 0.25, -0.35, 0.35);
@@ -140,6 +201,8 @@ export class PlayerAvatar {
     }
 
     if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
-    this.clothMat.emissiveIntensity = this.flash > 0 && Math.floor(this.flash * 20) % 2 === 0 ? 0.9 : 0;
+    const flashing = this.flash > 0 && Math.floor(this.flash * 20) % 2 === 0;
+    this.clothMat.emissive.copy(flashing ? this.flashColor : this.baseEmissive);
+    this.clothMat.emissiveIntensity = flashing ? 0.9 : 0.5;
   }
 }

@@ -12,6 +12,7 @@ export interface ScreenHandlers {
   onReturnToHell: () => void; // failed judgment
   onAscendedRun: () => void; // endless Ascended State
   onSelectAbility: (id: AbilityId) => void;
+  onOpenShop: () => void;
 }
 
 /** What the menu needs to know about the Ascended State. */
@@ -69,6 +70,8 @@ export class Screens {
         <div class="best" data-asc-best></div>
       </div>
       <button class="big-btn" data-play>RUN</button>
+      <div class="menu-row"><button class="ghost-btn" data-shop>SHOP</button></div>
+      <div class="wallet"><span class="coin-dot"></span><span data-wallet>0</span></div>
       <div class="best" data-best></div>
       <div class="how">Swipe ← → to change lanes<br/>Swipe ↑ to jump · Swipe ↓ to slide<br/>3 stumbles close together and you're caught<br/>Escape the Devil and climb to Heaven</div>`);
     this.pause = this.make(root, `
@@ -111,6 +114,7 @@ export class Screens {
     bind(this.ascended, '[data-menu]', h.onMenu);
     bind(this.ascended, '[data-asc]', h.onAscendedRun);
     bind(this.menu, '[data-asc]', h.onAscendedRun);
+    bind(this.menu, '[data-shop]', h.onOpenShop);
     bind(this.over, '[data-asc-again]', h.onAscendedRun);
   }
 
@@ -132,8 +136,9 @@ export class Screens {
     for (const s of [this.menu, this.pause, this.over, this.god, this.ascended]) s.classList.remove('on');
   }
 
-  showMenu(best: number, hasCheckpoint: boolean, ascended = false, testStage?: string, asc?: AscendedMenuInfo): void {
+  showMenu(best: number, hasCheckpoint: boolean, ascended = false, testStage?: string, asc?: AscendedMenuInfo, wallet = 0): void {
     this.hideAll();
+    this.q(this.menu, '[data-wallet]').textContent = wallet.toLocaleString();
     const ascBlock = this.q(this.menu, '[data-asc-block]');
     ascBlock.style.display = ascended && asc && !testStage ? '' : 'none';
     if (ascended && asc) {

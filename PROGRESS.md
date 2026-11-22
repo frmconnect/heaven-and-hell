@@ -9,7 +9,7 @@ https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gat
 Ascended State without passing judgment first: https://frmconnect.github.io/heaven-and-hell/?ascended (doesn't change the save).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested: button easy to tap, Flight Burst feels good, charging about once a minute "feels just about right"). Next: Phase 5 — Economy & customization.
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — **Complete** (owner play-tested). Phase 5 — Economy & customization: **built and tested by Claude; waiting for the owner's phone play-test.**
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -76,8 +76,19 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - Ascended scores saved separately (the competitive score): best score, best distance, local top 5 shown on the game-over screen
 - Fixed: after restarting a run, the first obstacles could briefly reuse the wrong 3D model
 
+## Phase 5 (built)
+- SHOP button on the menu, with your coin balance (coins earned before the shop became spendable)
+- Outfits: Pilgrim (free), Angel 800, Fallen 1,500, Golden One 4,000
+- Wings (flap behind you, open wide during Flight Burst): Angel 1,200, Bat 1,500, Crystal 3,000, Wings of Fire 4,000
+- Trails (glowing particles behind you): Light 600, Embers 900, Stardust 2,000, Golden Path 3,500
+- Shop shows a close-up of your runner wearing what you pick; buy = equip; WEAR to switch
+- Ability upgrades: 3 levels each (1,000 / 2,500 / 5,000): Flight 3→4.5 s, Slow Motion 4→5.5 s, Magnet 8→12.5 s
+- Daily reward pop-up: 7-day streak 100, 150, 200, 300, 400, 600, 1,000 coins; missing a day restarts it
+- No real-money purchases (decide in Phase 7)
+
 ## How it was tested
-- 65 automatic tests (`npm test`), incl. the Ascended map, multiplier, abilities and unlocks, Ascended top 5;, incl. the 3-stumble rule, the Devil→Shadow hand-over, judgment math (70/85/100), Miracle Shield, checkpoint keeping Sin/Grace
+- 75 automatic tests (`npm test`), incl. shop buying/equipping, upgrades capped at 3, daily streak, wallet; the Ascended map, multiplier, abilities and unlocks, Ascended top 5;, incl. the 3-stumble rule, the Devil→Shadow hand-over, judgment math (70/85/100), Miracle Shield, checkpoint keeping Sin/Grace
+- Browser test (shop): daily reward pop-up and claim, old save's coins become spendable, buying outfit/wings/trail, not-enough-coins message, upgrade, looks shown while running, everything kept after reload
 - Robot survives 4,000 m of the Ascended State on 5 random courses
 - Browser test (Ascended): menu ability picker, all 4 worlds, Flight Burst lifting the runner, 3 stumbles → "Your light went out!", Slow Motion unlock message, top 5, RUN AGAIN
 - Robot "saint" (helps souls, resists temptations) passes judgment on 4 random courses; robot "sinner" (grabs temptations) fails on all 4: state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
@@ -106,7 +117,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 2. ~~Heaven ascension~~ (done)
 3. ~~Sin, Grace & judgment~~ (done)
 4. ~~Ascended State~~ (done)
-5. Economy & customization (shop, cosmetics, upgrades, save/load)
+5. ~~Economy & customization~~ (built)
 6. Global competition (accounts, leaderboards, score validation)
 7. Polish & release (art, music, performance, Capacitor builds, store release)
 

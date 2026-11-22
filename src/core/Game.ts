@@ -8,6 +8,9 @@ import { InputController } from '../input/InputController';
 import { PlayerAvatar } from '../player/PlayerAvatar';
 import { ABILITIES, ABILITY_ORDER, isUnlocked, type AbilityId } from '../systems/Abilities';
 import { SaveData } from '../systems/SaveData';
+import { itemById, Shop } from '../systems/Shop';
+import { TrailRenderer } from '../player/TrailRenderer';
+import { ShopScreen } from '../ui/ShopScreen';
 import { judge } from '../systems/SinGrace';
 import { HUD } from '../ui/HUD';
 import { Screens } from '../ui/Screens';
@@ -39,6 +42,9 @@ export class Game {
   private devil: DevilAvatar;
   private shadow: ShadowAvatar;
   private crumble: Crumble;
+  private trail: TrailRenderer;
+  private shop: Shop;
+  private shopScreen: ShopScreen;
   private hud: HUD;
   private screens: Screens;
   private session: RunSession;
@@ -64,6 +70,8 @@ export class Game {
     this.devil = new DevilAvatar(this.scene);
     this.shadow = new ShadowAvatar(this.scene);
     this.crumble = new Crumble(this.scene);
+    this.trail = new TrailRenderer(this.scene);
+    this.shop = new Shop(this.save);
     this.session = new RunSession(1);
 
     this.hud = new HUD(uiRoot, () => this.pause(), () => this.useAbility());
@@ -84,7 +92,22 @@ export class Game {
         this.save.data.selectedAbility = ABILITY_ORDER.indexOf(id);
         this.save.save();
       },
+      onOpenShop: () => {
+        this.screens.hideAll();
+        this.shopScreen.open();
+      },
     });
+    this.shopScreen = new ShopScreen(
+      uiRoot,
+      this.shop,
+      () => this.applyLooks(),
+      () => {
+        this.shopScreen.close();
+        this.showMenu();
+      },
+      (id) => isUnlocked(id, this.save.data.ascendedBestDistance),
+    );
+    this.applyLooks();
     // desktop: E or Enter uses the ability
     window.addEventListener('keydown', (e) => {
       if (e.key === 'e' || e.key === 'E' || e.key === 'Enter') this.useAbility();
@@ -105,6 +128,8 @@ export class Game {
     });
     this.resize();
     this.showMenu();
+    // daily reward pop-up (Decisions log #27)
+    this.shopScreen.showDaily(() => this.showMenu());
     requestAnimationFrame(this.frame);
   }
 
@@ -118,7 +143,17 @@ export class Game {
       best: this.save.data.ascendedBestScore,
       selected: this.selectedAbility(),
       unlocked: Object.fromEntries(ABILITY_ORDER.map((id) => [id, isUnlocked(id, this.save.data.ascendedBestDistance)])) as Record<AbilityId, boolean>,
-    });
+    }, this.save.data.wallet);
+  }
+
+  /** Put the equipped outfit, wings and trail on the runner (Decisions log #24). */
+  private applyLooks(): void {
+    const o = itemById(this.shop.equipped('outfit'));
+    const w = itemById(this.shop.equipped('wings'));
+    const t = itemById(this.shop.equipped('trail'));
+    if (o) this.player.setOutfit(o.look);
+    if (w) this.player.setWings(w.id, w.look);
+    if (t) this.trail.setTrail(t.id, t.look);
   }
 
   /** The ability chosen on the menu (falls back to Flight Burst if not unlocked). */
@@ -141,7 +176,8 @@ export class Game {
   /** The endless Ascended State (Decisions log #20-23). */
   private startAscended(): void {
     if (!this.state.canGo(GameState.AscendedRun)) return;
-    this.session = new RunSession((Date.now() ^ (Math.random() * 1e9)) >>> 0, { ability: this.selectedAbility() }, ASCENDED_MAP);
+    const ability = this.selectedAbility();
+    this.session = new RunSession((Date.now() ^ (Math.random() * 1e9)) >>> 0, { ability, abilityLevel: this.shop.upgradeLevel(ability) }, ASCENDED_MAP);
     this.setMap(ASCENDED_MAP);
     this.player.reset();
     this.crumble.stop();
@@ -375,9 +411,12 @@ export class Game {
     this.player.update(vdt, s.motion, running ? s.speed : 0, shadowCaught ? 'fall' : s.ended);
     const groundAt = (dz: number) => map.ground(s.distance - dz) - g0;
     const devilChasing = s.chaser === 'devil';
-    this.devil.update(vdt, devilChasing ? s.devil.gap : 1e3, s.motion.x, devilChasing && s.devil.caught, groundAt);
+    // the Devil only appears during a run (not behind the menus)
+    const devilShown = devilChasing && (running || paused || this.state.state === GameState.GameOver);
+    this.devil.update(vdt, devilShown ? s.devil.gap : 1e3, s.motion.x, devilShown && s.devil.caught, groundAt);
     this.shadow.update(vdt, s.chaser === 'shadow' && !god, s.devil.gap, s.motion.x, shadowCaught, groundAt);
     this.crumble.update(vdt);
+    this.trail.update(vdt, s.motion.x, s.motion.y + s.flyY, speed, running && !s.over);
     if (running || paused) {
       this.hud.update(vdt, s.score.score, s.distance, s.score.coins, s.devil.danger, map.progress(s.distance));
     }
@@ -394,6 +433,11 @@ export class Game {
       CONFIG.camera.distance,
     );
     this.camera.lookAt(this.camX * 0.6, 1.2 + ahead * 0.75 + s.motion.y * 0.2, -CONFIG.camera.lookAhead);
+    if (this.shopScreen?.isOpen) {
+      // shop: close-up of the runner (from behind, so wings and trail show) in the lower part of the screen
+      this.camera.position.set(1.5, 1.6, 5.2);
+      this.camera.lookAt(0, 3.6, 0);
+    }
     this.renderer.render(this.scene, this.camera);
   }
 

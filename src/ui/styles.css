@@ -150,3 +150,42 @@ html, body {
 .unlocked-note { margin-top: 10px; font-size: 16px; font-weight: 900; color: #fff1a8; text-shadow: 0 0 10px #ffc23a; }
 .screen.heaven .top5, .screen.heaven .sub, .screen.heaven .stats { text-shadow: 0 1px 4px rgba(20,30,70,.9); }
 .screen.heaven .top5 .me { color: #fff1a8; }
+
+/* Shop */
+.screen.shop { justify-content: flex-start; background: linear-gradient(180deg, rgba(20,6,30,.92) 0%, rgba(20,6,30,.85) 58%, rgba(20,6,30,0) 72%); padding-top: calc(var(--safe-top) + 12px); }
+.shop-panel { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 10px; max-height: 64vh; }
+.shop-head { display: flex; align-items: center; gap: 12px; }
+.shop-title { flex: 1; text-align: left; font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #ffe6a8; }
+.shop-tabs { display: flex; gap: 6px; }
+.shop-tab { flex: 1; padding: 9px 4px; border-radius: 10px; border: 1px solid rgba(255,220,150,.35); background: rgba(0,0,0,.3); color: var(--ink); font-size: 11px; font-weight: 900; letter-spacing: 1px; }
+.shop-tab.on { background: linear-gradient(180deg, #fff2b0, #ffc23a); color: #3a2a00; }
+.shop-list { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 2px; }
+.shop-item { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 12px; background: rgba(255,255,255,.06); text-align: left; }
+.shop-swatch { flex: none; width: 42px; height: 42px; border-radius: 10px; border: 2px solid rgba(255,255,255,.6); display: grid; place-items: center; font-size: 20px; color: #fff; }
+.shop-swatch.none { background: rgba(0,0,0,.3); }
+.shop-swatch.ability { background: radial-gradient(circle, #fff6c8, #c89a2a); color: #3a2a00; }
+.shop-info { flex: 1; min-width: 0; }
+.shop-info b { display: block; font-size: 15px; }
+.shop-info small { display: block; font-size: 12px; opacity: .75; }
+.pips { display: flex; gap: 4px; margin-top: 4px; }
+.pips i { width: 18px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.2); }
+.pips i.on { background: #ffd257; }
+.shop-buy { flex: none; min-width: 84px; padding: 9px 10px; border-radius: 10px; border: 0; font-weight: 900; font-size: 14px; color: #3a2a00; background: linear-gradient(180deg, #ffe08a, #ffb02a); display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.shop-buy[data-poor] { filter: grayscale(.8); opacity: .6; }
+.shop-buy.owned { background: rgba(255,255,255,.15); color: var(--ink); }
+.shop-tag { flex: none; min-width: 84px; text-align: center; font-size: 12px; font-weight: 900; letter-spacing: 1px; opacity: .7; }
+.shop-tag.on { color: #ffd257; opacity: 1; }
+.shop-note { font-size: 11px; opacity: .6; }
+.shop-msg { min-height: 20px; font-size: 14px; font-weight: 800; color: #fff1a8; opacity: 0; }
+.shop-msg.show { animation: popup 1.8s ease-out forwards; }
+.menu-row { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.wallet { margin-top: 10px; display: inline-flex; gap: 6px; align-items: center; font-size: 16px; font-weight: 800; color: var(--gold); }
+/* Daily reward */
+.days { margin-top: 18px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 340px; }
+.day { padding: 8px 4px; border-radius: 10px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,220,150,.3); }
+.day small { display: block; font-size: 10px; opacity: .7; font-weight: 800; }
+.day b { font-size: 16px; color: var(--gold); }
+.day.done { opacity: .45; }
+.day.today { background: linear-gradient(180deg, #fff2b0, #ffc23a); }
+.day.today b, .day.today small { color: #3a2a00; opacity: 1; }
+.screen.daily { background: radial-gradient(ellipse at 50% 40%, rgba(70,20,10,.97), rgba(10,1,0,.98)); z-index: 5; }
