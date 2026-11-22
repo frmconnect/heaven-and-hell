@@ -6,9 +6,10 @@ Backup link (private to the owner): https://claude.ai/artifact/9bWTMjYKWmHtekqSX
 ## How to test a later stage quickly
 Add `?stage=` to the play link to start right at a stage, e.g.
 https://frmconnect.github.io/heaven-and-hell/?stage=gardens (also: stairway, gate, bridges, kingdom).
+Ascended State without passing judgment first: https://frmconnect.github.io/heaven-and-hell/?ascended (doesn't change the save).
 
 ## Current phase
-Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested: souls/temptations visible in time, judgment works). Next: Phase 4 — Ascended State.
+Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 — **Complete** (owner play-tested). Phase 4 — Ascended State: **built and tested by Claude; waiting for the owner's phone play-test.**
 
 ## Completed
 - Game design document saved (`GAME_DESIGN.md`), plus `CLAUDE.md` and this file
@@ -60,8 +61,25 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - Restarting from the Heaven's Gate checkpoint keeps your Sin/Grace record
 - Saved on the device: Ascended unlocked, best Grace %, perfect judgments, times God was reached
 
+## Phase 4 (built)
+- ASCENDED RUN on the menu once judgment is passed (journey still playable as NEW JOURNEY)
+- Endless map: worlds rotate every 1,500 m — The Golden Clouds, The Celestial Gardens, The Crystal Bridges, The Cosmic Heavens (new: starry violet sky, planets with rings, crystal spires, glowing glass path)
+- Starts faster (15 m/s, up to 32) and keeps getting harder (obstacle gaps keep shrinking)
+- No chaser: "YOUR LIGHT" meter; 3 stumbles close together = "Your light went out!"
+- Score multiplier x1→x5: +1 every 250 m without a stumble; a stumble resets to x1
+- Ability button (bottom right) fills as you collect coins and run cleanly; tap when full (or E/Enter on a computer)
+  - Flight Burst (fly above everything 3 s) — unlocked on ascending
+  - Slow Motion (world at half speed 4 s) — unlocks at 1,500 m in an Ascended run
+  - Celestial Magnet (collects all coins close ahead, any lane, 8 s) — unlocks at 3,000 m
+  - Choose which ability to bring on the menu; locked ones show how to unlock them
+- No souls/temptations in the Ascended State; Miracle Shields still appear
+- Ascended scores saved separately (the competitive score): best score, best distance, local top 5 shown on the game-over screen
+- Fixed: after restarting a run, the first obstacles could briefly reuse the wrong 3D model
+
 ## How it was tested
-- 51 automatic tests (`npm test`), incl. the 3-stumble rule, the Devil→Shadow hand-over, judgment math (70/85/100), Miracle Shield, checkpoint keeping Sin/Grace
+- 65 automatic tests (`npm test`), incl. the Ascended map, multiplier, abilities and unlocks, Ascended top 5;, incl. the 3-stumble rule, the Devil→Shadow hand-over, judgment math (70/85/100), Miracle Shield, checkpoint keeping Sin/Grace
+- Robot survives 4,000 m of the Ascended State on 5 random courses
+- Browser test (Ascended): menu ability picker, all 4 worlds, Flight Burst lifting the runner, 3 stumbles → "Your light went out!", Slow Motion unlock message, top 5, RUN AGAIN
 - Robot "saint" (helps souls, resists temptations) passes judgment on 4 random courses; robot "sinner" (grabs temptations) fails on all 4: state machine, lanes, jump/slide, swipe detection (incl. long swipes = one move), collisions, Devil, score, save data
 - Robot player test: survives Hell + Stairway on 30 random courses, and completes the WHOLE journey to God on 15 random courses with every stage, level bonus and checkpoint firing in order
 - Browser flow test: teleported through every stage in a phone-sized browser; checked game states, the Devil giving up, checkpoint save, TRY AGAIN from the Gate, God screen, and CONTINUE after reloading
@@ -87,7 +105,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 ## Remaining phases
 2. ~~Heaven ascension~~ (done)
 3. ~~Sin, Grace & judgment~~ (done)
-4. Ascended State (endless mode, abilities, difficulty scaling)
+4. ~~Ascended State~~ (built)
 5. Economy & customization (shop, cosmetics, upgrades, save/load)
 6. Global competition (accounts, leaderboards, score validation)
 7. Polish & release (art, music, performance, Capacitor builds, store release)

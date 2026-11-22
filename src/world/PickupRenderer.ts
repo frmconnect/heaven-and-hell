@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { laneX } from '../core/config';
-import { groundHeight } from './journey';
+import { JOURNEY_MAP, type WorldMap } from './worldMap';
 import type { PickupData, PickupKind } from './TrackGenerator';
 
 function glowTexture(): THREE.CanvasTexture {
@@ -30,6 +30,8 @@ interface Active {
  * A saved soul floats up into the sky and fades away.
  */
 export class PickupRenderer {
+  /** Which map we're drawing (journey or Ascended State). */
+  map: WorldMap = JOURNEY_MAP;
   private group = new THREE.Group();
   private pools: Record<PickupKind, THREE.Object3D[]> = { soul: [], temptation: [], miracle: [] };
   private active = new Map<number, Active>();
@@ -107,7 +109,7 @@ export class PickupRenderer {
 
   sync(pickups: readonly PickupData[], distance: number, dt: number): void {
     this.time += dt;
-    const g0 = groundHeight(distance);
+    const g0 = this.map.ground(distance);
     const seen = new Set<number>();
     for (const p of pickups) {
       if (p.taken) continue;
@@ -122,7 +124,7 @@ export class PickupRenderer {
         this.active.set(p.id, a);
       }
       const bob = Math.sin(this.time * 2.5 + p.z) * 0.12;
-      a.obj.position.set(laneX(p.lane), groundHeight(p.z) - g0 + p.y + bob, -(p.z - distance));
+      a.obj.position.set(laneX(p.lane), this.map.ground(p.z) - g0 + p.y + bob, -(p.z - distance));
       if (p.kind === 'temptation') {
         const gem = a.obj.getObjectByName('gem');
         if (gem) gem.rotation.y = this.time * 2;

@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { laneX } from '../core/config';
-import { groundHeight } from './journey';
+import { JOURNEY_MAP, type WorldMap } from './worldMap';
 import type { CoinData } from './TrackGenerator';
 
 const MAX = 400;
 
 /** Draws all coins in a single draw call (instancing) and makes them spin. */
 export class CoinRenderer {
+  /** Which map we're drawing (journey or Ascended State). */
+  map: WorldMap = JOURNEY_MAP;
   private mesh: THREE.InstancedMesh;
   private dummy = new THREE.Object3D();
   private time = 0;
@@ -24,10 +26,10 @@ export class CoinRenderer {
   sync(coins: readonly CoinData[], distance: number, dt: number): void {
     this.time += dt;
     let n = 0;
-    const g0 = groundHeight(distance);
+    const g0 = this.map.ground(distance);
     for (const c of coins) {
       if (c.taken || n >= MAX) continue;
-      this.dummy.position.set(laneX(c.lane), groundHeight(c.z) - g0 + c.y + Math.sin(this.time * 4 + c.z) * 0.08, -(c.z - distance));
+      this.dummy.position.set(laneX(c.lane), this.map.ground(c.z) - g0 + c.y + Math.sin(this.time * 4 + c.z) * 0.08, -(c.z - distance));
       this.dummy.rotation.set(0, this.time * 3 + c.z * 0.3, 0);
       this.dummy.updateMatrix();
       this.mesh.setMatrixAt(n++, this.dummy.matrix);

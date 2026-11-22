@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { CONFIG } from '../core/config';
 import { Rng } from '../core/rng';
 import { CLOUD_TEXTURES, DECOR, SEAS, TILE, buildTile, decorFlames, type DecorSpec } from './decor';
-import { GATE_Z, GateSet } from './GateSet';
+import { GateSet } from './GateSet';
 import { lavaTexture } from './hell/textures';
-import { groundHeight, stageAt, stageIndexAt, STAGES, stageStart } from './journey';
+import { stageStart } from './journey';
+import { JOURNEY_MAP, type WorldMap } from './worldMap';
 import { LOOKS, type ThemeLook } from './themes';
 
 const TILE_COUNT = Math.ceil((CONFIG.track.viewAhead + 60) / TILE);
@@ -54,6 +55,9 @@ export class Environment {
   private c2 = new THREE.Color();
   /** for tone mapping exposure, read by the game each frame */
   exposure = 1;
+  private map: WorldMap = JOURNEY_MAP;
+  private stars: THREE.Points;
+  private starMat: THREE.PointsMaterial;
 
   constructor(scene: THREE.Scene) {
     scene.add(this.group);
@@ -124,6 +128,32 @@ export class Environment {
     this.group.add(this.particles);
 
     this.gate = new GateSet(scene);
+
+    // starfield for the Cosmic Heavens (only visible there)
+    const sn = 500;
+    const sp = new Float32Array(sn * 3);
+    for (let i = 0; i < sn; i++) {
+      const a = r.range(0, Math.PI * 2), e = r.range(0.05, 1.2), dist = 300;
+      sp[i * 3] = Math.cos(a) * Math.cos(e) * dist;
+      sp[i * 3 + 1] = Math.sin(e) * dist * 0.7 - 20;
+      sp[i * 3 + 2] = -Math.abs(Math.sin(a)) * Math.cos(e) * dist - 40;
+    }
+    const sg = new THREE.BufferGeometry();
+    sg.setAttribute('position', new THREE.BufferAttribute(sp, 3));
+    this.starMat = new THREE.PointsMaterial({ color: '#ffffff', size: 1.6, sizeAttenuation: true, fog: false, transparent: true, opacity: 0, depthWrite: false });
+    this.stars = new THREE.Points(sg, this.starMat);
+    this.stars.frustumCulled = false;
+    this.group.add(this.stars);
+  }
+
+  /** Switch between the journey and the Ascended State map; clears the old world. */
+  setMap(map: WorldMap): void {
+    if (map === this.map) return;
+    this.map = map;
+    for (const m of [this.tiles, this.decor, this.seas]) {
+      for (const p of m.values()) this.give(p);
+      m.clear();
+    }
   }
 
   private take(key: string, build: () => THREE.Object3D): THREE.Object3D {
@@ -163,8 +193,10 @@ export class Environment {
 
   update(dt: number, distance: number, speed: number): void {
     this.time += dt;
-    const g0 = groundHeight(distance);
-    const rel = (z: number) => groundHeight(z) - g0;
+    const map = this.map;
+    const journey = map.kind === 'journey';
+    const g0 = map.ground(distance);
+    const rel = (z: number) => map.ground(z) - g0;
 
     // floor tiles
     const firstTile = Math.floor((distance - 20) / TILE);
@@ -173,7 +205,7 @@ export class Environment {
       firstTile,
       firstTile + TILE_COUNT,
       (k) => {
-        const theme = stageAt(k * TILE + TILE / 2).id;
+        const theme = map.stageAt(k * TILE + TILE / 2).id;
         const key = `tile:${theme}`;
         const obj = this.take(key, () => {
           const b = buildTile(theme);
@@ -188,7 +220,7 @@ export class Environment {
         if (p.obj.userData.stepped) {
           p.obj.position.set(0, rel(start), -(centre - distance));
         } else {
-          const slope = STAGES[stageIndexAt(centre)].slope;
+          const slope = map.stageAt(centre).slope;
           p.obj.position.set(0, rel(centre), -(centre - distance));
           p.obj.rotation.x = Math.atan(slope);
         }
@@ -203,9 +235,9 @@ export class Environment {
       firstDecor + Math.ceil((CONFIG.track.viewAhead + 60) / DECOR_SPACING),
       (k) => {
         const z = k * DECOR_SPACING;
-        const theme = stageAt(z).id;
+        const theme = map.stageAt(z).id;
         // keep the Gate area clear of clutter
-        if (Math.abs(z - GATE_Z) < 25) return null;
+        if (map.gateZ !== null && Math.abs(z - map.gateZ) < 25) return null;
         const specs = DECOR[theme];
         const i = Math.floor(hash(k, 1) * specs.length);
         const spec: DecorSpec = specs[i];
@@ -232,7 +264,7 @@ export class Environment {
       firstSea,
       firstSea + SEA_COUNT,
       (k) => {
-        const theme = stageAt(k * SEA_TILE + SEA_TILE / 2).id;
+        const theme = map.stageAt(k * SEA_TILE + SEA_TILE / 2).id;
         const spec = SEAS[theme];
         if (!spec) return null;
         const key = `sea:${theme}`;
@@ -255,8 +287,8 @@ export class Environment {
     this.lava.position.set(0, -1.1 - g0, -170);
     this.lavaTex.offset.y = (distance * 30) / 400 + this.time * 0.02;
     this.lavaTex.offset.x = Math.sin(this.time * 0.3) * 0.05;
-    const inHell = distance < stageStart('stairway') + 80;
-    this.lava.visible = g0 < 260;
+    const inHell = journey && distance < stageStart('stairway') + 80;
+    this.lava.visible = journey && g0 < 260;
     const pulse = 0.85 + Math.sin(this.time * 2.1) * 0.08 + Math.sin(this.time * 5.3) * 0.04;
     this.lavaMat.color.setScalar(pulse);
     // above Hell, let its glow show through the fog so you can see what you escaped
@@ -268,16 +300,21 @@ export class Environment {
     this.volcano.position.y = 10 - g0;
 
     // God's light ahead grows as you go through Heaven
-    const heaven = Math.max(0, Math.min(1, (distance - stageStart('stairway')) / 400));
+    const heaven = journey ? Math.max(0, Math.min(1, (distance - stageStart('stairway')) / 400)) : 1;
     (this.sun.material as THREE.MeshBasicMaterial).opacity = heaven * 0.9;
     this.sun.visible = heaven > 0;
 
     // sky, fog and light: blend from the previous world into this one
-    const idx = stageIndexAt(distance);
-    const cur = LOOKS[STAGES[idx].id];
-    const prev = LOOKS[STAGES[Math.max(0, idx - 1)].id];
-    const t = idx === 0 ? 1 : THREE.MathUtils.smoothstep(distance - stageStart(STAGES[idx].id), 0, BLEND_METRES);
+    const idx = map.stageIndexAt(distance);
+    const cur = LOOKS[map.stageAt(distance).id];
+    const prev = LOOKS[map.prevStageAt(distance).id];
+    const t = idx === 0 ? 1 : THREE.MathUtils.smoothstep(distance - map.stageStartAt(distance), 0, BLEND_METRES);
     this.applyLook(prev, cur, t);
+    const starsOn = this.mix(prev.stars ?? 0, cur.stars ?? 0, t);
+    this.starMat.opacity = starsOn;
+    this.stars.visible = starsOn > 0.01;
+    // God's light is not shown in the night sky of the Cosmic Heavens
+    (this.sun.material as THREE.MeshBasicMaterial).opacity *= 1 - starsOn;
 
     this.fireLight.intensity = this.mix(prev.fire, cur.fire, t) * (1 + Math.sin(this.time * 9) * 0.12 + Math.sin(this.time * 23) * 0.08);
 
@@ -300,7 +337,8 @@ export class Environment {
     }
     p.needsUpdate = true;
 
-    this.gate.update(GATE_Z - distance, rel(GATE_Z), this.time);
+    if (map.gateZ !== null) this.gate.update(map.gateZ - distance, rel(map.gateZ), this.time);
+    else this.gate.update(1e6, 0, this.time);
   }
 
   private mix(a: number, b: number, t: number): number {

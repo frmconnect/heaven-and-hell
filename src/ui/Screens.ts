@@ -1,6 +1,7 @@
 import { CONFIG } from '../core/config';
 import type { Chaser, EndReason } from '../core/RunSession';
 import type { Judgment, MoralRecord } from '../systems/SinGrace';
+import { ABILITIES, ABILITY_ORDER, type AbilityId } from '../systems/Abilities';
 
 export interface ScreenHandlers {
   onPlay: () => void; // new journey from Hell
@@ -9,6 +10,22 @@ export interface ScreenHandlers {
   onMenu: () => void;
   onAscend: () => void; // passed judgment
   onReturnToHell: () => void; // failed judgment
+  onAscendedRun: () => void; // endless Ascended State
+  onSelectAbility: (id: AbilityId) => void;
+}
+
+/** What the menu needs to know about the Ascended State. */
+export interface AscendedMenuInfo {
+  best: number;
+  selected: AbilityId;
+  unlocked: Record<AbilityId, boolean>;
+}
+
+export interface AscendedOverInfo {
+  top: number[];
+  rank: number; // place in the local top 5 (0 = not in it)
+  bestMultiplier: number;
+  unlocked: string[]; // ability names unlocked by this run
 }
 
 export interface GameOverInfo {
@@ -21,10 +38,11 @@ export interface GameOverInfo {
   best: number;
   isNewBest: boolean;
   canContinue: boolean; // crashed after Heaven's Gate
+  ascended?: AscendedOverInfo;
 }
 
 function reasonText(reason: EndReason, inHeaven: boolean, chaser: Chaser): string {
-  if (reason === 'caught') return chaser === 'shadow' ? 'Your sins dragged you down!' : 'The Devil caught you!';
+  if (reason === 'caught') return chaser === 'none' ? 'Your light went out!' : chaser === 'shadow' ? 'Your sins dragged you down!' : 'The Devil caught you!';
   if (reason === 'crash') return 'You crashed!';
   return inHeaven ? 'You fell back toward Hell!' : 'You fell into the lava!';
 }
@@ -45,6 +63,11 @@ export class Screens {
       <div class="tagline">Escape Hell. Climb to Heaven. Face Judgment.<br/>Earn Freedom. Compete for Eternity.</div>
       <button class="big-btn" data-continue>CONTINUE</button>
       <div class="sub" data-continue-note style="margin-top:8px">from Heaven's Gate</div>
+      <div data-asc-block style="display:none">
+        <button class="big-btn" data-asc>ASCENDED RUN</button>
+        <div class="ability-pick" data-picker></div>
+        <div class="best" data-asc-best></div>
+      </div>
       <button class="big-btn" data-play>RUN</button>
       <div class="best" data-best></div>
       <div class="how">Swipe ← → to change lanes<br/>Swipe ↑ to jump · Swipe ↓ to slide<br/>3 stumbles close together and you're caught<br/>Escape the Devil and climb to Heaven</div>`);
@@ -61,6 +84,8 @@ export class Screens {
         <span>Best</span><b data-b></b>
       </div>
       <div class="new-best" data-new>NEW BEST!</div>
+      <div data-asc-over></div>
+      <button class="big-btn" data-asc-again style="display:none">RUN AGAIN</button>
       <button class="big-btn" data-continue>TRY AGAIN</button>
       <div class="sub" style="margin-top:8px" data-continue-note>from Heaven's Gate</div>
       <button class="big-btn" data-again>RUN AGAIN</button>
@@ -69,8 +94,9 @@ export class Screens {
     this.god.classList.add('judgment');
     this.ascended = this.make(root, `
       <div class="god-title">The Ascended State</div>
-      <div class="god-text">You are free to roam.<br/><br/>Endless mode, abilities and the leaderboards arrive in the next update (Phase 4).</div>
-      <button class="big-btn" data-menu>MENU</button>`);
+      <div class="god-text">You are free to roam.<br/><br/>Run forever through the heavens. Use your abilities, build your multiplier and set the highest score you can.</div>
+      <button class="big-btn" data-asc>START ASCENDED RUN</button>
+      <button class="ghost-btn" data-menu>MENU</button>`);
     this.ascended.classList.add('heaven');
 
     const bind = (el: HTMLElement, sel: string, fn: () => void) =>
@@ -83,6 +109,9 @@ export class Screens {
     bind(this.pause, '[data-menu]', h.onMenu);
     bind(this.over, '[data-menu]', h.onMenu);
     bind(this.ascended, '[data-menu]', h.onMenu);
+    bind(this.ascended, '[data-asc]', h.onAscendedRun);
+    bind(this.menu, '[data-asc]', h.onAscendedRun);
+    bind(this.over, '[data-asc-again]', h.onAscendedRun);
   }
 
   private make(root: HTMLElement, html: string): HTMLDivElement {
@@ -103,8 +132,28 @@ export class Screens {
     for (const s of [this.menu, this.pause, this.over, this.god, this.ascended]) s.classList.remove('on');
   }
 
-  showMenu(best: number, hasCheckpoint: boolean, ascended = false, testStage?: string): void {
+  showMenu(best: number, hasCheckpoint: boolean, ascended = false, testStage?: string, asc?: AscendedMenuInfo): void {
     this.hideAll();
+    const ascBlock = this.q(this.menu, '[data-asc-block]');
+    ascBlock.style.display = ascended && asc && !testStage ? '' : 'none';
+    if (ascended && asc) {
+      this.q(this.menu, '[data-asc-best]').textContent = asc.best > 0 ? `Ascended best: ${asc.best}` : '';
+      const picker = this.q(this.menu, '[data-picker]');
+      picker.innerHTML = '';
+      for (const id of ABILITY_ORDER) {
+        const def = ABILITIES[id];
+        const b = document.createElement('button');
+        b.className = 'ability-chip' + (asc.selected === id ? ' on' : '');
+        b.disabled = !asc.unlocked[id];
+        b.innerHTML = `${def.name.toUpperCase()}<small>${asc.unlocked[id] ? def.description : `Unlocks at ${def.unlockDistance.toLocaleString()} m`}</small>`;
+        b.addEventListener('click', () => {
+          this.handlers.onSelectAbility(id);
+          picker.querySelectorAll('.ability-chip').forEach((c) => c.classList.remove('on'));
+          b.classList.add('on');
+        });
+        picker.appendChild(b);
+      }
+    }
     let badge = this.menu.querySelector('.ascended-badge') as HTMLElement | null;
     if (!badge) {
       badge = document.createElement('div');
@@ -116,8 +165,9 @@ export class Screens {
     this.q(this.menu, '[data-continue]').style.display = hasCheckpoint ? '' : 'none';
     this.q(this.menu, '[data-continue-note]').style.display = hasCheckpoint ? '' : 'none';
     const play = this.q(this.menu, '[data-play]');
-    play.textContent = testStage ? `START: ${testStage.toUpperCase()}` : hasCheckpoint ? 'NEW JOURNEY' : 'RUN';
-    play.className = hasCheckpoint ? 'ghost-btn' : 'big-btn';
+    const ghost = hasCheckpoint || (ascended && !testStage);
+    play.textContent = testStage ? `START: ${testStage.toUpperCase()}` : ghost ? 'NEW JOURNEY' : 'RUN';
+    play.className = ghost ? 'ghost-btn' : 'big-btn';
     this.menu.classList.add('on');
   }
 
@@ -142,6 +192,16 @@ export class Screens {
     const again = this.q(this.over, '[data-again]');
     again.textContent = i.canContinue ? 'NEW JOURNEY' : 'RUN AGAIN';
     again.className = i.canContinue ? 'ghost-btn' : 'big-btn';
+    // Ascended State: run again in endless mode, show the local top 5
+    const a = i.ascended;
+    this.q(this.over, '[data-asc-again]').style.display = a ? '' : 'none';
+    again.style.display = a ? 'none' : '';
+    const box = this.q(this.over, '[data-asc-over]');
+    box.innerHTML = a
+      ? `<div class="sub">Best multiplier: x${a.bestMultiplier}</div>
+         ${a.unlocked.map((n) => `<div class="unlocked-note">✦ New ability unlocked: ${n} ✦</div>`).join('')}
+         <div class="top5"><b>Your best Ascended runs</b>${a.top.map((sc, k) => `<div class="${k + 1 === a.rank ? 'me' : ''}">${k + 1}. ${sc}</div>`).join('')}</div>`
+      : '';
     this.over.classList.add('on');
   }
 

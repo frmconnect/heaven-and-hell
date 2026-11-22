@@ -6,6 +6,7 @@ import { DevilAvatar } from '../enemies/DevilAvatar';
 import { ShadowAvatar } from '../enemies/ShadowAvatar';
 import { InputController } from '../input/InputController';
 import { PlayerAvatar } from '../player/PlayerAvatar';
+import { ABILITIES, ABILITY_ORDER, isUnlocked, type AbilityId } from '../systems/Abilities';
 import { SaveData } from '../systems/SaveData';
 import { judge } from '../systems/SinGrace';
 import { HUD } from '../ui/HUD';
@@ -15,7 +16,8 @@ import { Crumble } from '../world/Crumble';
 import { MATERIALS } from '../world/decor';
 import { Environment } from '../world/Environment';
 import { GATE_Z } from '../world/GateSet';
-import { groundHeight, journeyProgress, STAGES, stageStart, type ThemeId } from '../world/journey';
+import { STAGES, stageStart, type ThemeId } from '../world/journey';
+import { ASCENDED_MAP, JOURNEY_MAP, type WorldMap } from '../world/worldMap';
 import { ObstacleRenderer } from '../world/ObstacleRenderer';
 import { PickupRenderer } from '../world/PickupRenderer';
 
@@ -64,7 +66,7 @@ export class Game {
     this.crumble = new Crumble(this.scene);
     this.session = new RunSession(1);
 
-    this.hud = new HUD(uiRoot, () => this.pause());
+    this.hud = new HUD(uiRoot, () => this.pause(), () => this.useAbility());
     this.screens = new Screens(uiRoot, {
       onPlay: () => this.startRun({}),
       onContinue: () => this.startRun({ distance: this.save.data.checkpoint, coins: this.save.data.checkpointCoins, record: this.save.checkpointRecord }),
@@ -77,6 +79,15 @@ export class Game {
         // "You are not yet ready." Back to the start of Hell, on a brand-new course (Decisions log #3)
         if (this.state.go(GameState.JudgmentFailed)) this.startRun({ distance: 0 });
       },
+      onAscendedRun: () => this.startAscended(),
+      onSelectAbility: (id) => {
+        this.save.data.selectedAbility = ABILITY_ORDER.indexOf(id);
+        this.save.save();
+      },
+    });
+    // desktop: E or Enter uses the ability
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'e' || e.key === 'E' || e.key === 'Enter') this.useAbility();
     });
 
     const input = new InputController(mount);
@@ -101,7 +112,50 @@ export class Game {
     // a ?stage= test link: one clear button that starts at that stage (no CONTINUE)
     const test = this.testStart();
     const testName = test ? STAGES.find((s) => s.id === new URLSearchParams(location.search).get('stage'))?.name : undefined;
-    this.screens.showMenu(this.save.data.bestScore, !test && this.save.data.checkpoint > 0, this.save.data.ascended > 0, testName);
+    // ?ascended test link: show the Ascended State on the menu without changing the save
+    const ascendedOpen = this.save.data.ascended > 0 || new URLSearchParams(location.search).has('ascended');
+    this.screens.showMenu(this.save.data.bestScore, !test && this.save.data.checkpoint > 0, ascendedOpen, testName, {
+      best: this.save.data.ascendedBestScore,
+      selected: this.selectedAbility(),
+      unlocked: Object.fromEntries(ABILITY_ORDER.map((id) => [id, isUnlocked(id, this.save.data.ascendedBestDistance)])) as Record<AbilityId, boolean>,
+    });
+  }
+
+  /** The ability chosen on the menu (falls back to Flight Burst if not unlocked). */
+  private selectedAbility(): AbilityId {
+    const id = ABILITY_ORDER[this.save.data.selectedAbility] ?? 'flight';
+    return isUnlocked(id, this.save.data.ascendedBestDistance) ? id : 'flight';
+  }
+
+  private setMap(map: WorldMap): void {
+    this.env.setMap(map);
+    this.obstacles.map = map;
+    this.coins.map = map;
+    this.pickups.map = map;
+  }
+
+  private useAbility(): void {
+    if (this.state.state === GameState.AscendedRun) this.session.useAbility();
+  }
+
+  /** The endless Ascended State (Decisions log #20-23). */
+  private startAscended(): void {
+    if (!this.state.canGo(GameState.AscendedRun)) return;
+    this.session = new RunSession((Date.now() ^ (Math.random() * 1e9)) >>> 0, { ability: this.selectedAbility() }, ASCENDED_MAP);
+    this.setMap(ASCENDED_MAP);
+    this.player.reset();
+    this.crumble.stop();
+    this.endTimer = 0;
+    this.gateFlashed = true;
+    this.hud.setMode('ascended');
+    this.hud.setChaser('YOUR LIGHT');
+    this.hud.setWhiteout(0);
+    this.hud.setMultiplier(1);
+    this.hud.setStage(this.session.stage.name);
+    this.hud.setHeaven(true);
+    this.screens.hideAll();
+    this.state.go(GameState.AscendedRun);
+    this.hud.toast('FREE TO ROAM', 1.8, this.session.stage.name);
   }
 
   /** For play-testing: add ?stage=gardens (or stairway, gate, bridges, kingdom) to the link to start there. */
@@ -118,6 +172,8 @@ export class Game {
     if (!this.state.canGo(target)) return;
     // new seed every run, so the course is never the same twice
     this.session = new RunSession((Date.now() ^ (Math.random() * 1e9)) >>> 0, begin);
+    this.setMap(JOURNEY_MAP);
+    this.hud.setMode('journey');
     this.player.reset();
     this.crumble.stop();
     this.endTimer = 0;
@@ -154,6 +210,7 @@ export class Game {
   private toMenu(): void {
     if (this.state.go(GameState.MainMenu)) {
       this.session = new RunSession(1);
+      this.setMap(JOURNEY_MAP);
       this.player.reset();
       this.crumble.stop();
       this.showMenu();
@@ -195,7 +252,9 @@ export class Game {
           navigator.vibrate?.(60);
           if (!s.ended) {
             const close = s.devil.danger > 0.6;
-            this.hud.toast(close ? (s.chaser === 'shadow' ? 'YOUR SINS ARE CLOSE!' : 'HE IS CLOSE!') : 'STUMBLE!', 0.8);
+            const warn = s.chaser === 'none' ? 'YOUR LIGHT IS FADING!' : s.chaser === 'shadow' ? 'YOUR SINS ARE CLOSE!' : 'HE IS CLOSE!';
+            this.hud.toast(close ? warn : 'STUMBLE!', 0.8);
+            if (s.ascended) this.hud.setMultiplier(1);
           }
           break;
         case 'end':
@@ -218,7 +277,8 @@ export class Game {
           this.hud.setStage(e.stage.name);
           this.hud.setHeaven(e.stage.id !== 'hell');
           if (e.stage.state !== this.state.state) this.state.go(e.stage.state);
-          if (e.stage.level) this.hud.toast(`LEVEL ${e.stage.level}`, 2.4, e.stage.name);
+          if (s.ascended) this.hud.toast(e.stage.name.toUpperCase(), 2.2);
+          else if (e.stage.level) this.hud.toast(`LEVEL ${e.stage.level}`, 2.4, e.stage.name);
           else if (e.stage.id === 'stairway') this.hud.toast('THE STAIRWAY', 2.4, 'Climb to Heaven');
           else if (e.stage.id === 'gate') this.hud.toast("HEAVEN'S GATE", 2.4);
           else if (e.stage.id === 'god') this.hud.toast('THE LIGHT OF GOD', 2.6, 'Your sins cannot follow you here');
@@ -252,6 +312,17 @@ export class Game {
         case 'levelComplete':
           this.hud.toast('LEVEL COMPLETE', 1.8, `+${e.bonus} points`);
           break;
+        case 'multiplier':
+          this.hud.setMultiplier(e.value);
+          this.hud.pop(`x${e.value} MULTIPLIER`, 'grace');
+          break;
+        case 'abilityReady':
+          this.hud.pop(`${ABILITIES[s.ability?.selected ?? 'flight'].name} ready · tap ✦`, 'grace');
+          navigator.vibrate?.(30);
+          break;
+        case 'abilityStart':
+          this.hud.toast(ABILITIES[e.id].name.toUpperCase(), 1.2);
+          break;
         case 'journeyComplete':
           this.hud.flash();
           this.endTimer = GOD_DELAY;
@@ -259,7 +330,7 @@ export class Game {
       }
     }
     // white flash as you pass through the gates
-    if (!this.gateFlashed && s.distance > GATE_Z) {
+    if (!this.gateFlashed && !s.ascended && s.distance > GATE_Z) {
       this.gateFlashed = true;
       this.hud.flash();
       setTimeout(() => this.hud.toast('CHECKPOINT', 1.6, 'You can restart here'), 900);
@@ -272,16 +343,18 @@ export class Game {
     const paused = this.state.state === GameState.Paused;
 
     if (running && !s.over) {
-      s.update(dt);
+      // Slow Motion slows the world; ability timers use real time
+      s.update(dt * s.timeScale, dt);
       this.handleEvents();
     } else if (running && s.over) {
       this.endTimer -= dt;
       if (this.endTimer <= 0) this.finishRun();
     }
 
-    const vdt = paused ? 0 : dt;
+    const vdt = paused ? 0 : dt * s.timeScale;
     const speed = running && !s.over ? s.speed : 0;
-    const g0 = groundHeight(s.distance);
+    const map = s.map;
+    const g0 = map.ground(s.distance);
     this.env.update(vdt, s.distance, speed);
     this.renderer.toneMappingExposure = this.env.exposure;
     this.obstacles.sync(s.obstacles, s.distance, vdt);
@@ -295,23 +368,26 @@ export class Game {
       this.hud.setWhiteout(s.completed ? 1 : godT * 0.8);
       this.hud.setGrace(s.moral.percent, s.moral.choices);
       this.hud.showChase(!god);
+      if (s.ability) this.hud.setAbility(ABILITIES[s.ability.selected].name.split(' ')[0].toUpperCase(), s.ability.charge, s.ability.ready, s.ability.active !== null);
     }
     const shadowCaught = s.ended === 'caught' && s.chaser === 'shadow';
+    this.player.fly = s.flyY;
     this.player.update(vdt, s.motion, running ? s.speed : 0, shadowCaught ? 'fall' : s.ended);
-    const groundAt = (dz: number) => groundHeight(s.distance - dz) - g0;
+    const groundAt = (dz: number) => map.ground(s.distance - dz) - g0;
     const devilChasing = s.chaser === 'devil';
     this.devil.update(vdt, devilChasing ? s.devil.gap : 1e3, s.motion.x, devilChasing && s.devil.caught, groundAt);
-    this.shadow.update(vdt, !devilChasing && !god, s.devil.gap, s.motion.x, shadowCaught, groundAt);
+    this.shadow.update(vdt, s.chaser === 'shadow' && !god, s.devil.gap, s.motion.x, shadowCaught, groundAt);
     this.crumble.update(vdt);
     if (running || paused) {
-      this.hud.update(vdt, s.score.score, s.distance, s.score.coins, s.devil.danger, journeyProgress(s.distance));
+      this.hud.update(vdt, s.score.score, s.distance, s.score.coins, s.devil.danger, map.progress(s.distance));
     }
 
     // follow camera (looks up the stairs as you climb)
     this.camX = THREE.MathUtils.lerp(this.camX, s.motion.x * 0.55, Math.min(1, dt * 8));
     this.shake = Math.max(0, this.shake - dt);
     const sh = this.shake * 0.4;
-    const ahead = groundHeight(s.distance + CONFIG.camera.lookAhead) - g0;
+    // flying lifts the camera a little too
+    const ahead = map.ground(s.distance + CONFIG.camera.lookAhead) - g0 + s.flyY * 0.5;
     this.camera.position.set(
       this.camX + (Math.random() - 0.5) * sh,
       CONFIG.camera.height + ahead * 0.55 + s.motion.y * 0.35 + (Math.random() - 0.5) * sh,
@@ -327,6 +403,7 @@ export class Game {
       case 'gardens': return MATERIALS.garden;
       case 'bridges': return MATERIALS.bridge;
       case 'kingdom': return MATERIALS.goldTiles;
+      case 'cosmic': return MATERIALS.cosmicFloor;
       default: return MATERIALS.marble;
     }
   }
@@ -343,6 +420,18 @@ export class Game {
       return;
     }
     if (!s.ended) return;
+    if (s.ascended) {
+      // the competitive score (Decisions log #23)
+      const unlockAt = Object.fromEntries(ABILITY_ORDER.map((id) => [id, ABILITIES[id].unlockDistance]));
+      const r = this.save.recordAscended(s.score.score, s.distance, s.score.coins, unlockAt);
+      this.state.go(GameState.GameOver);
+      this.screens.showGameOver({
+        reason: s.ended, chaser: s.chaser, inHeaven: true, score: s.score.score, distance: s.distance, coins: s.score.coins,
+        best: this.save.data.ascendedBestScore, isNewBest: r.isBest, canContinue: false,
+        ascended: { top: this.save.data.ascendedTop, rank: r.rank, bestMultiplier: s.score.bestMultiplier, unlocked: r.unlocked.map((id) => ABILITIES[id as AbilityId].name) },
+      });
+      return;
+    }
     const isBest = this.save.recordRun(s.score.score, s.distance, s.score.coins);
     const afterGate = s.distance > stageStart('gardens') && this.save.data.checkpoint > 0;
     this.state.go(GameState.GameOver);

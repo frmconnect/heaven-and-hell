@@ -24,7 +24,12 @@ export class HUD {
   private popsEl: HTMLElement;
   private whiteoutEl: HTMLElement;
 
-  constructor(root: HTMLElement, onPause: () => void) {
+  private multEl!: HTMLElement;
+  private abilityBtn!: HTMLButtonElement;
+  private abilityLabel!: HTMLElement;
+  private lightMode = false;
+
+  constructor(root: HTMLElement, onPause: () => void, onAbility: () => void = () => {}) {
     this.el = document.createElement('div');
     this.el.className = 'hud';
     // little ticks on the journey bar where each stage starts
@@ -36,7 +41,7 @@ export class HUD {
       <div class="vignette"></div>
       <div class="flash"></div>
       <div class="hud-row">
-        <div><div class="score" data-score>0</div><div class="sub" data-dist>0 m</div></div>
+        <div><div class="score-row"><div class="score" data-score>0</div><div class="mult" data-mult>x1</div></div><div class="sub" data-dist>0 m</div></div>
         <div style="display:flex;gap:10px;align-items:center">
           <div class="coins"><span class="coin-dot"></span><span data-coins>0</span></div>
           <button class="icon-btn" data-pause aria-label="Pause">II</button>
@@ -54,6 +59,7 @@ export class HUD {
       <div class="devil-meter" data-devil>THE DEVIL<div class="devil-bar"><div class="devil-fill" data-devil-fill></div></div></div>
       <div class="toast" data-toast><div data-toast-main></div><div class="toast-sub" data-toast-sub></div></div>
       <div class="pops" data-pops></div>
+      <button class="ability-btn" data-ability aria-label="Use ability"><span class="ability-icon">✦</span><span class="ability-name" data-ability-name></span></button>
       <div class="whiteout" data-whiteout></div>
       <div class="hint" data-hint></div>`;
     root.appendChild(this.el);
@@ -76,6 +82,16 @@ export class HUD {
     this.gracePct = q('[data-gpct]');
     this.popsEl = q('[data-pops]');
     this.whiteoutEl = q('[data-whiteout]');
+    this.multEl = q('[data-mult]');
+    this.abilityBtn = q('[data-ability]') as HTMLButtonElement;
+    this.abilityLabel = q('[data-ability-name]');
+    const fire = (e: Event) => {
+      e.stopPropagation();
+      e.preventDefault();
+      onAbility();
+    };
+    this.abilityBtn.addEventListener('touchstart', fire, { passive: false });
+    this.abilityBtn.addEventListener('mousedown', fire);
     const pause = q('[data-pause]');
     pause.addEventListener('click', onPause);
     // stop the pause tap from also counting as a swipe/tap on the game
@@ -95,10 +111,30 @@ export class HUD {
     this.stageEl.textContent = name.toUpperCase();
   }
 
-  /** Name on the chase meter: THE DEVIL, or YOUR SINS once the Shadow takes over. */
+  /** Name on the chase meter: THE DEVIL, YOUR SINS (the Shadow), or YOUR LIGHT (Ascended State). */
   setChaser(label: string): void {
     (this.devilEl.firstChild as Text).textContent = label;
-    this.devilEl.classList.toggle('shadow', label !== 'THE DEVIL');
+    this.lightMode = label === 'YOUR LIGHT';
+    this.devilEl.classList.toggle('shadow', label === 'YOUR SINS');
+    this.devilEl.classList.toggle('light', this.lightMode);
+  }
+
+  /** Journey layout (progress bar + Grace meter) or Ascended layout (multiplier + ability button). */
+  setMode(mode: 'journey' | 'ascended'): void {
+    this.el.classList.toggle('ascended', mode === 'ascended');
+  }
+
+  setMultiplier(m: number): void {
+    this.multEl.textContent = `x${m}`;
+    this.multEl.classList.toggle('hot', m >= 3);
+  }
+
+  /** The ability button fills as it charges; glows when ready. */
+  setAbility(name: string, charge: number, ready: boolean, active: boolean): void {
+    this.abilityBtn.style.setProperty('--charge', `${Math.round(charge * 360)}deg`);
+    this.abilityBtn.classList.toggle('ready', ready);
+    this.abilityBtn.classList.toggle('active', active);
+    this.abilityLabel.textContent = active ? 'ACTIVE' : ready ? 'TAP!' : name;
   }
 
   showChase(on: boolean): void {
@@ -109,11 +145,12 @@ export class HUD {
     this.scoreEl.textContent = String(score);
     this.distEl.textContent = `${Math.floor(distance)} m`;
     this.coinsEl.textContent = String(coins);
-    this.devilFill.style.width = `${Math.round(danger * 100)}%`;
+    // in the Ascended State the meter shows how much light you have left
+    this.devilFill.style.width = `${Math.round((this.lightMode ? 1 - danger : danger) * 100)}%`;
     this.devilEl.classList.toggle('danger', danger > 0.55);
     const v = Math.max(0, (danger - 0.45) / 0.55);
-    const shadow = this.devilEl.classList.contains('shadow');
-    this.vignette.style.boxShadow = `inset 0 0 120px 40px rgba(${shadow ? '70,0,120' : '255,0,0'},${(v * 0.55).toFixed(2)})`;
+    const shadow = this.devilEl.classList.contains('shadow') || this.lightMode;
+    this.vignette.style.boxShadow = `inset 0 0 120px 40px rgba(${shadow ? '40,20,80' : '255,0,0'},${(v * 0.55).toFixed(2)})`;
     const pct = `${(progress * 100).toFixed(1)}%`;
     this.journeyFill.style.width = pct;
     this.journeyMark.style.left = pct;

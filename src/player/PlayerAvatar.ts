@@ -14,6 +14,8 @@ export class PlayerAvatar {
   private phase = 0;
   private flash = 0;
   private fallY = 0;
+  /** Flight Burst height (set by the game each frame). */
+  fly = 0;
   private halo: THREE.Group;
   private bubbleMat: THREE.MeshBasicMaterial;
 
@@ -86,7 +88,7 @@ export class PlayerAvatar {
   }
 
   update(dt: number, m: PlayerMotion, speed: number, ended: string | null): void {
-    this.root.position.set(m.x, m.y, 0);
+    this.root.position.set(m.x, m.y + this.fly, 0);
     // lean into lane changes
     this.root.rotation.z = THREE.MathUtils.clamp(-(laneX(m.lane) - m.x) * 0.25, -0.35, 0.35);
 
@@ -103,6 +105,18 @@ export class PlayerAvatar {
 
     this.phase += dt * speed * 0.9;
     const s = Math.sin(this.phase);
+    if (this.fly > 0.3) {
+      // flying: arms spread wide, leaning forward like soaring
+      this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, 0.7, Math.min(1, dt * 8));
+      this.armL.rotation.set(0, 0, -1.4);
+      this.armR.rotation.set(0, 0, 1.4);
+      this.legL.rotation.x = 0.3;
+      this.legR.rotation.x = 0.1;
+      this.halo.visible = true;
+      return;
+    }
+    this.armL.rotation.z = 0;
+    this.armR.rotation.z = 0;
     if (m.sliding) {
       this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, -1.25, Math.min(1, dt * 20));
       this.body.position.y = THREE.MathUtils.lerp(this.body.position.y, 0.35, Math.min(1, dt * 20));

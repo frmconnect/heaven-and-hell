@@ -22,6 +22,12 @@ export interface SaveState {
   ascended: number; // 1 = passed judgment, Ascended State unlocked
   bestGrace: number;
   perfectJudgments: number;
+  // Phase 4: Ascended State — the competitive score (Decisions log #23)
+  ascendedBestScore: number;
+  ascendedBestDistance: number;
+  ascendedRuns: number;
+  selectedAbility: number; // index into ABILITY_ORDER
+  ascendedTop: number[]; // local top 5 scores
 }
 
 export interface KeyValueStore {
@@ -35,6 +41,7 @@ export const defaultSave = (): SaveState => ({
   version: 1, bestScore: 0, bestDistance: 0, totalCoins: 0, runs: 0, checkpoint: 0, checkpointCoins: 0, journeysCompleted: 0,
   cpSoulsHelped: 0, cpSoulsMissed: 0, cpResisted: 0, cpTaken: 0, cpMiracles: 0,
   godReached: 0, ascended: 0, bestGrace: 0, perfectJudgments: 0,
+  ascendedBestScore: 0, ascendedBestDistance: 0, ascendedRuns: 0, selectedAbility: 0, ascendedTop: [],
 });
 
 /** Saves progress on the device. Never throws: if storage is blocked, the game keeps working without saving. */
@@ -52,7 +59,11 @@ export class SaveData {
       const parsed = JSON.parse(raw);
       const d = defaultSave();
       for (const k of Object.keys(d) as (keyof SaveState)[]) {
-        if (k !== 'version' && typeof parsed[k] === 'number' && Number.isFinite(parsed[k])) d[k] = parsed[k];
+        if (k === 'version' || k === 'ascendedTop') continue;
+        if (typeof parsed[k] === 'number' && Number.isFinite(parsed[k])) (d as unknown as Record<string, number>)[k] = parsed[k];
+      }
+      if (Array.isArray(parsed.ascendedTop)) {
+        d.ascendedTop = parsed.ascendedTop.filter((x: unknown) => typeof x === 'number' && Number.isFinite(x)).slice(0, 5);
       }
       return d;
     } catch {
@@ -105,6 +116,28 @@ export class SaveData {
     this.data.checkpoint = 0;
     this.data.checkpointCoins = 0;
     this.save();
+  }
+
+  /**
+   * Record an Ascended run (the competitive score). Returns whether it's a new best,
+   * its place in the local top 5 (0 = not in it), and which abilities it unlocked.
+   */
+  recordAscended(score: number, distance: number, coins: number, unlockAt: Record<string, number>): { isBest: boolean; rank: number; unlocked: string[] } {
+    const d = this.data;
+    const before = d.ascendedBestDistance;
+    const isBest = score > d.ascendedBestScore;
+    d.ascendedRuns += 1;
+    d.totalCoins += coins;
+    if (isBest) d.ascendedBestScore = score;
+    d.ascendedBestDistance = Math.max(before, Math.floor(distance));
+    const top = [...d.ascendedTop, score].sort((a, b) => b - a).slice(0, 5);
+    const rank = score > 0 && top.includes(score) ? top.indexOf(score) + 1 : 0;
+    d.ascendedTop = top;
+    const unlocked = Object.entries(unlockAt)
+      .filter(([, at]) => at > 0 && before < at && d.ascendedBestDistance >= at)
+      .map(([id]) => id);
+    this.save();
+    return { isBest, rank, unlocked };
   }
 
   /** Record a finished run. Returns true if it was a new best score. */

@@ -119,3 +119,34 @@ html, body {
 .screen.judgment .ghost-btn { color: #3a2a10; border-color: rgba(90,60,20,.5); background: rgba(255,255,255,.4); }
 .ascended-badge { margin-top: 10px; font-size: 14px; font-weight: 800; letter-spacing: 2px; color: #fff6d0; text-shadow: 0 0 10px #ffc23a; }
 .screen.judgment.skip .j-step { animation: none; opacity: 1; }
+
+/* Ascended State HUD */
+.mult { display: none; margin-left: 8px; padding: 2px 8px; border-radius: 10px; font-size: 18px; font-weight: 900; color: #3a2a00; background: linear-gradient(180deg, #fff2b0, #ffc23a); box-shadow: 0 0 10px rgba(255,200,60,.7); }
+.mult.hot { animation: pulse .5s infinite alternate; }
+.score-row { display: flex; align-items: center; }
+.hud.ascended .mult { display: inline-block; }
+.hud.ascended .journey, .hud.ascended .grace { display: none; }
+.devil-meter.light { color: #fff6c8; }
+.devil-meter.light .devil-bar { border-color: rgba(255,230,150,.7); }
+.devil-meter.light .devil-fill { background: linear-gradient(90deg, #fff6c8, #ffc23a); }
+.ability-btn { display: none; position: absolute; right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(var(--safe-bottom) + 28px); width: 84px; height: 84px; border-radius: 50%; border: 0; padding: 0; color: #3a2a00;
+  background: conic-gradient(#ffd257 var(--charge, 0deg), rgba(30,30,60,.55) var(--charge, 0deg)); box-shadow: 0 0 0 3px rgba(255,255,255,.7), 0 6px 16px rgba(0,0,0,.4); }
+.ability-btn::before { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fffbe8, #f0e2b8); }
+.ability-btn > span { position: relative; display: block; }
+.ability-icon { font-size: 26px; line-height: 1; }
+.ability-name { font-size: 9px; font-weight: 900; letter-spacing: 1px; margin-top: 2px; }
+.ability-btn.ready { animation: readyGlow .6s infinite alternate; }
+.ability-btn.active::before { background: radial-gradient(circle, #ffffff, #fff2a0); }
+@keyframes readyGlow { from { box-shadow: 0 0 0 3px #fff, 0 0 10px #ffd257 } to { box-shadow: 0 0 0 4px #fff, 0 0 30px #ffd257 } }
+.hud.ascended .ability-btn { display: block; }
+/* Ascended menu & game over */
+.ability-pick { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 360px; }
+.ability-chip { min-width: 100px; padding: 8px 10px; border-radius: 12px; border: 1px solid rgba(255,220,150,.5); background: rgba(0,0,0,.3); color: var(--ink); font-size: 12px; font-weight: 800; letter-spacing: 1px; line-height: 1.3; }
+.ability-chip small { display: block; font-weight: 600; opacity: .75; letter-spacing: 0; }
+.ability-chip.on { background: linear-gradient(180deg, #fff2b0, #ffc23a); color: #3a2a00; border-color: #fff; }
+.ability-chip:disabled { opacity: .45; }
+.top5 { margin-top: 14px; font-size: 14px; line-height: 1.7; }
+.top5 .me { color: var(--gold); font-weight: 900; }
+.unlocked-note { margin-top: 10px; font-size: 16px; font-weight: 900; color: #fff1a8; text-shadow: 0 0 10px #ffc23a; }
+.screen.heaven .top5, .screen.heaven .sub, .screen.heaven .stats { text-shadow: 0 1px 4px rgba(20,30,70,.9); }
+.screen.heaven .top5 .me { color: #fff1a8; }

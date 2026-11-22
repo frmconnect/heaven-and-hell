@@ -3,7 +3,8 @@ import { laneX } from '../core/config';
 import { MATERIALS as D } from './decor';
 import { rockTexture, lavaTexture } from './hell/textures';
 import { voidTexture } from './heaven/textures';
-import { groundHeight, type ThemeId } from './journey';
+import type { ThemeId } from './journey';
+import { JOURNEY_MAP, type WorldMap } from './worldMap';
 import { lengthOf, SHAPES, type ObstacleData, type ObstacleKind } from './obstacles';
 
 /**
@@ -11,6 +12,8 @@ import { lengthOf, SHAPES, type ObstacleData, type ObstacleKind } from './obstac
  * which keeps phones running smoothly.
  */
 export class ObstacleRenderer {
+  /** Which map we're drawing (journey or Ascended State). */
+  map: WorldMap = JOURNEY_MAP;
   readonly group = new THREE.Group();
   private pools = new Map<string, THREE.Object3D[]>();
   private active = new Map<number, { key: string; obj: THREE.Object3D }>();
@@ -160,7 +163,7 @@ export class ObstacleRenderer {
   /** Match the meshes to the current list of obstacles. */
   sync(obstacles: readonly ObstacleData[], distance: number, dt: number): void {
     this.time += dt;
-    const g0 = groundHeight(distance);
+    const g0 = this.map.ground(distance);
     const seen = new Set<number>();
     for (const o of obstacles) {
       seen.add(o.id);
@@ -176,7 +179,7 @@ export class ObstacleRenderer {
         a = { key, obj };
         this.active.set(o.id, a);
       }
-      a.obj.position.set(laneX(o.lane), groundHeight(o.z) - g0, -(o.z - distance));
+      a.obj.position.set(laneX(o.lane), this.map.ground(o.z) - g0, -(o.z - distance));
       // barriers you stumble through get knocked over
       if (o.hit && (o.kind === 'low' || o.kind === 'high')) {
         a.obj.rotation.x = Math.max(a.obj.rotation.x - dt * 8, -1.4);

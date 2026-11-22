@@ -177,6 +177,22 @@ describe('Score and save data', () => {
     expect(d.bestScore).toBe(77);
     expect(d.checkpoint).toBe(0);
   });
+  it('Ascended runs: best score, local top 5, ability unlocks by distance', () => {
+    const mem: Record<string, string> = {};
+    const store: KeyValueStore = { getItem: (k) => mem[k] ?? null, setItem: (k, v) => void (mem[k] = v) };
+    const sd = new SaveData(store);
+    const unlockAt = { flight: 0, slowmo: 1500, magnet: 3000 };
+    let r = sd.recordAscended(1000, 800, 5, unlockAt);
+    expect(r).toEqual({ isBest: true, rank: 1, unlocked: [] });
+    r = sd.recordAscended(4000, 1600, 5, unlockAt);
+    expect(r.unlocked).toEqual(['slowmo']);
+    for (const sc of [50, 60, 70, 80]) sd.recordAscended(sc, 100, 0, unlockAt);
+    r = sd.recordAscended(10, 100, 0, unlockAt);
+    expect(r.rank).toBe(0);
+    const again = new SaveData(store);
+    expect(again.data.ascendedTop).toEqual([4000, 1000, 80, 70, 60]);
+    expect(again.data.ascendedBestDistance).toBe(1600);
+  });
   it('scores distance plus coins', () => {
     const s = new ScoreManager();
     s.addDistance(123.7);
