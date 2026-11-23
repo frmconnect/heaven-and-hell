@@ -58,6 +58,9 @@ export type BuyResult = 'ok' | 'owned' | 'coins' | 'unknown' | 'max';
 
 /** Buying, equipping, upgrading and the daily reward. All saved on the device. */
 export class Shop {
+  /** Told about every coin spent or earned here (for analytics). */
+  onCoins?: (flow: 'in' | 'out', amount: number, kind: string, id: string) => void;
+
   constructor(private save: SaveData) {}
 
   get wallet(): number {
@@ -83,6 +86,7 @@ export class Shop {
     if (this.save.data.wallet < item.price) return 'coins';
     this.save.data.wallet -= item.price;
     this.save.data.owned.push(id);
+    this.onCoins?.('out', item.price, 'shop', id);
     this.equip(id);
     return 'ok';
   }
@@ -114,6 +118,7 @@ export class Shop {
     if (this.save.data.wallet < price) return 'coins';
     this.save.data.wallet -= price;
     this.save.data[UPGRADE_KEY[a]] = this.upgradeLevel(a) + 1;
+    this.onCoins?.('out', price, 'upgrade', `${a}_${this.upgradeLevel(a)}`);
     this.save.save();
     return 'ok';
   }
@@ -137,6 +142,7 @@ export class Shop {
     d.wallet += coins;
     d.totalCoins += coins;
     this.save.save();
+    this.onCoins?.('in', coins, 'daily', `day${day}`);
     return coins;
   }
 }

@@ -10,6 +10,9 @@ import { ABILITIES, ABILITY_ORDER, isUnlocked, type AbilityId } from '../systems
 import { SaveData } from '../systems/SaveData';
 import { giveTesterGift, itemById, Shop } from '../systems/Shop';
 import { Leaderboard, newPlayerId } from '../systems/Leaderboard';
+import { Analytics } from '../systems/Analytics';
+import { createGameAnalyticsSink } from '../systems/GameAnalyticsSink';
+import { GA_GAME_KEY, GA_SECRET_KEY } from './analyticsConfig';
 import { ONLINE } from './online';
 import { LeaderboardScreen } from '../ui/LeaderboardScreen';
 import { TrailRenderer } from '../player/TrailRenderer';
@@ -51,6 +54,8 @@ export class Game {
   private shop: Shop;
   private shopScreen: ShopScreen;
   private lb = new Leaderboard(ONLINE);
+  /** How people play, for tuning the game (Decisions log #39). */
+  readonly analytics = new Analytics();
   private boardScreen: LeaderboardScreen;
   private audio: AudioManager;
   private settingsScreen: SettingsScreen;
@@ -85,6 +90,9 @@ export class Game {
     this.crumble = new Crumble(this.scene);
     this.trail = new TrailRenderer(this.scene);
     this.shop = new Shop(this.save);
+    this.shop.onCoins = (flow, amount, kind, id) =>
+      flow === 'out' ? this.analytics.coinsOut(amount, kind as 'shop' | 'upgrade', id) : this.analytics.coinsIn(amount, 'daily', id);
+    this.startAnalytics();
     this.session = new RunSession(1);
 
     this.audio = new AudioManager({ sfxOn: !!this.save.data.sfxOn, sfxVolume: this.save.data.sfxVolume, ambienceOn: !!this.save.data.ambienceOn });
@@ -113,10 +121,12 @@ export class Game {
         this.save.save();
       },
       onOpenShop: () => {
+        this.analytics.event('menu:shop');
         this.screens.hideAll();
         this.shopScreen.open();
       },
       onOpenBoard: () => {
+        this.analytics.event('menu:leaderboard');
         this.screens.hideAll();
         this.boardScreen.open();
       },
@@ -166,7 +176,10 @@ export class Game {
         this.showMenu();
       },
       {
-        onGraphics: () => this.applyGraphics(),
+        onGraphics: () => {
+          this.applyGraphics();
+          this.analytics.event(`settings:graphics:${this.save.data.graphics ? 'high' : 'low'}`);
+        },
         // "Delete my data": remove scores from the server, then become a new anonymous player
         onDeleteOnline: async () => {
           const ok = await this.lb.deleteMine(this.save.data.playerId);
@@ -206,12 +219,17 @@ export class Game {
       if (document.hidden) {
         this.pause();
         this.audio.setPaused(true);
-      } else if (!this.state.isRunning && this.state.state !== GameState.Paused) this.audio.setPaused(false);
+        this.analytics.pause();
+      } else {
+        this.analytics.resume();
+        if (!this.state.isRunning && this.state.state !== GameState.Paused) this.audio.setPaused(false);
+      }
     });
     this.resize();
     // ?gift tester link: one-time 10,000 coins on this device (TESTING ONLY — remove before release)
     if (new URLSearchParams(location.search).has('gift')) {
       const got = giveTesterGift(this.save);
+      this.analytics.coinsIn(got, 'gift', 'tester');
       const banner = document.createElement('div');
       banner.className = 'gift-banner';
       banner.textContent = got ? `+${got.toLocaleString()} coins — tester gift! Open the SHOP.` : 'Tester gift already used on this phone.';
@@ -292,6 +310,17 @@ export class Game {
     });
   }
 
+  /** Switch on GameAnalytics if keys are set (it loads in the background; the game never waits for it). */
+  private startAnalytics(): void {
+    if (!GA_GAME_KEY || !GA_SECRET_KEY) return;
+    const build = typeof __BUILD__ === 'string' ? __BUILD__.replace(/[^0-9]/g, '').slice(0, 12) : 'dev';
+    void createGameAnalyticsSink(GA_GAME_KEY, GA_SECRET_KEY, `web-${build}`).then((sink) => {
+      if (!sink) return;
+      this.analytics.setSink(sink);
+      this.analytics.playerType(this.save.data.ascended > 0);
+    });
+  }
+
   /** Graphics quality (Settings): Low = sharpness 1x, half the scenery, no floating particles. */
   private applyGraphics(): void {
     const low = !this.save.data.graphics;
@@ -354,6 +383,8 @@ export class Game {
     this.audio.setPaused(false);
     this.audio.play('run');
     this.audio.ambience(this.session.stage.id);
+    this.analytics.runStart('ascended', this.session.stage.id);
+    this.analytics.event(`ascended:ability:${ability}`, this.shop.upgradeLevel(ability));
   }
 
   /** For play-testing: add ?stage=gardens (or stairway, gate, bridges, kingdom) to the link to start there. */
@@ -392,6 +423,7 @@ export class Game {
     this.audio.play('run');
     this.audio.ambience(stage.id);
     if (d === 0) setTimeout(() => this.audio.play('devilRoar'), 300);
+    this.analytics.runStart('journey', stage.id, d > 0);
     if (this.runCount === 1 && this.save.data.runs < 3 && d === 0) {
       this.hud.hint('Swipe ← → ↑ ↓ to escape the Devil');
       setTimeout(() => this.hud.hint(null), 4000);
@@ -572,24 +604,26 @@ export class Game {
         else a.play('crash');
         break;
       case 'devilGivesUp':
+        this.analytics.event('journey:devil_escaped', Math.floor(s.distance));
         a.play('devilGivesUp');
         setTimeout(() => a.play('shadowRise'), 1600);
         break;
       case 'stage':
+        this.analytics.stageReached(s.ascended ? 'ascended' : 'journey', e.stage.id, s.score.score);
         a.ambience(e.stage.id);
         a.play(e.stage.id === 'gate' ? 'gate' : 'stage');
         break;
       case 'soulHelped': a.play('soulSaved'); break;
       case 'soulLost': a.play('soulLost'); break;
-      case 'temptationTaken': a.play('temptation'); break;
+      case 'temptationTaken': a.play('temptation'); this.analytics.event('journey:temptation_taken'); break;
       case 'resisted': a.play('resisted'); break;
       case 'miracle': a.play('miracle'); break;
-      case 'shieldUsed': a.play('shieldBreak'); break;
+      case 'shieldUsed': a.play('shieldBreak'); this.analytics.event('miracle:saved_you'); break;
       case 'levelComplete': a.play('levelComplete'); break;
-      case 'multiplier': a.play('multiplier', e.value - 2); break;
+      case 'multiplier': a.play('multiplier', e.value - 2); this.analytics.event('ascended:multiplier', e.value); break;
       case 'abilityReady': a.play('abilityReady'); break;
-      case 'abilityStart': a.play(e.id === 'flight' ? 'flight' : e.id === 'slowmo' ? 'slowmo' : 'magnet'); break;
-      case 'journeyComplete': a.ambience('god'); break;
+      case 'abilityStart': a.play(e.id === 'flight' ? 'flight' : e.id === 'slowmo' ? 'slowmo' : 'magnet'); this.analytics.event(`ascended:ability_used:${e.id}`); break;
+      case 'journeyComplete': a.ambience('god'); this.analytics.journeyComplete(s.score.score, s.score.coins); break;
     }
   }
 
@@ -688,6 +722,8 @@ export class Game {
       this.save.recordRun(s.score.score, s.distance, s.score.coins);
       this.save.data.journeysCompleted += 1;
       this.save.recordJudgment(j.percent, j.passed, j.verdict === 'perfect', j.rewardCoins);
+      this.analytics.judgment(j.passed, j.percent, j.rewardCoins, s.moral.record.soulsHelped, s.moral.record.temptationsTaken);
+      if (j.passed) this.analytics.playerType(true);
       if (this.state.go(GameState.Judgment)) {
         this.screens.showJudgment(j, s.moral.record);
         this.audio.ambience('');
@@ -697,6 +733,7 @@ export class Game {
       return;
     }
     if (!s.ended) return;
+    this.analytics.runEnd(s.ascended ? 'ascended' : 'journey', s.ended + (s.chaser === 'none' || s.ended !== 'caught' ? '' : `_${s.chaser}`), s.distance, s.score.score, s.score.coins, s.time);
     if (s.ascended) {
       // the competitive score (Decisions log #23)
       const unlockAt = Object.fromEntries(ABILITY_ORDER.map((id) => [id, ABILITIES[id].unlockDistance]));
