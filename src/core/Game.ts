@@ -66,6 +66,7 @@ export class Game {
   private statsBase = { distance: 0, coins: 0 };
   private lastStumbleAt = 0;
   private missionTick = 0;
+  private driftWarnings = 0;
   private boardScreen: LeaderboardScreen;
   private audio: AudioManager;
   private settingsScreen: SettingsScreen;
@@ -343,6 +344,7 @@ export class Game {
     this.lastStumbleAt = s.distance;
     this.stats.stageIndex = s.ascended ? 0 : s.stageIndex;
     this.missions.startRun();
+    this.driftWarnings = 0;
   }
 
   /** Bring the run's numbers up to date and pay any challenge or mission just completed. */
@@ -686,6 +688,10 @@ export class Game {
       case 'soulHelped': a.play('soulSaved'); this.stats.souls++; break;
       case 'soulLost': a.play('soulLost'); break;
       case 'temptationTaken': a.play('temptation'); this.analytics.event('journey:temptation_taken'); break;
+      case 'temptationDrift':
+        a.play('lane');
+        if (this.driftWarnings++ < 2) this.hud.pop('The cursed gold slides toward you…', 'sin');
+        break;
       case 'resisted': a.play('resisted'); this.stats.resisted++; break;
       case 'miracle': a.play('miracle'); this.stats.miracles++; break;
       case 'shieldUsed': a.play('shieldBreak'); this.analytics.event('miracle:saved_you'); break;

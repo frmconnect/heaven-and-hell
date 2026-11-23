@@ -145,7 +145,7 @@ export class SettingsScreen {
           <h3>The journey</h3>
           <p>Escape <b>Hell</b> and the Devil, climb the <b>Stairway</b>, pass <b>Heaven's Gate</b> (a checkpoint) and cross three heavenly levels to reach <b>God</b>. After the Devil gives up, the <b>Shadow of your sins</b> chases you.</p>
           <h3>Grace and Sin</h3>
-          <p><b>Save lost souls</b> (run through the glowing ghosts) and <b>leave the cursed red gold alone</b> to earn Grace. Taking it adds Sin. You need <b>70% Grace</b> to pass judgment. <b>Miracle Shields</b> (golden halos) protect you from one hit.</p>
+          <p><b>Save lost souls</b> (run through the glowing ghosts) and <b>leave the cursed red gold alone</b> to earn Grace — <b>jump over it</b> when it blocks the only path, and watch out: some of it <b>slides toward you</b>. Taking it adds Sin. You need <b>70% Grace</b> to pass judgment. <b>Miracle Shields</b> (golden halos) protect you from one hit.</p>
           <h3>The Ascended State</h3>
           <p>Pass judgment to run forever. Run cleanly to grow your <b>multiplier (up to x5)</b>, fill the <b>ability button</b> and tap it. Compete on the <b>leaderboards</b>.</p>
         </div>

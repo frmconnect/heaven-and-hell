@@ -6,6 +6,19 @@ import { lengthOf } from '../src/world/obstacles';
  *  style 'saint' goes for souls, 'sinner' goes for temptations, 'none' ignores both. */
 export function botStep(s: RunSession, style: 'none' | 'saint' | 'sinner' = 'none'): void {
   const d = s.distance;
+  // a saint avoids cursed gold: move away if there's room, otherwise jump over it
+  if (style === 'saint') {
+    const gold = s.pickups.find((p) => !p.resolved && p.kind === 'temptation' && p.lane === s.motion.lane && p.z - d > 0 && p.z - d < 12);
+    if (gold) {
+      const wallAt = (lane: number) => s.obstacles.some((o) => o.lane === lane && Math.abs(o.z - gold.z) < lengthOf(o) / 2 + 2 && (o.kind === 'wall' || lengthOf(o) > 6));
+      const side = [s.motion.lane - 1, s.motion.lane + 1].find((l) => l >= 0 && l <= 2 && !wallAt(l));
+      if (side !== undefined && gold.z - d > 5) {
+        s.act(side < s.motion.lane ? 'left' : 'right');
+        return;
+      }
+      if (gold.z - d < s.speed * 0.18 + 0.4) s.act('jump');
+    }
+  }
   if (style !== 'none') {
     const want = style === 'saint' ? 'soul' : 'temptation';
     const firstRow = Math.min(...s.obstacles.filter((o) => o.z + lengthOf(o) / 2 > d).map((o) => o.z - lengthOf(o) / 2), Infinity);

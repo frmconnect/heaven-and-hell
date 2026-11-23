@@ -25,6 +25,7 @@ export type RunEvent =
   | { type: 'soulHelped'; pickup: PickupData }
   | { type: 'soulLost' }
   | { type: 'temptationTaken'; pickup: PickupData; coins: number }
+  | { type: 'temptationDrift'; pickup: PickupData }
   | { type: 'resisted' }
   | { type: 'miracle'; pickup: PickupData }
   | { type: 'shieldUsed' }
@@ -229,7 +230,15 @@ export class RunSession {
         }
         continue;
       }
+      // drifting cursed gold slides into your lane as you approach (Decisions log #41)
+      if (p.kind === 'temptation' && p.drift && !p.drifted && dz < 13 && dz > 4 && Math.abs(m.lane - p.lane) === 1) {
+        p.lane = m.lane;
+        p.drifted = true;
+        this.events.push({ type: 'temptationDrift', pickup: p });
+      }
       if (dz > 2) continue;
+      // jumping (or flying) over cursed gold resists it
+      if (p.kind === 'temptation' && m.y + this.flyY >= CONFIG.moral.resistJumpHeight) continue;
       const dx = m.x - laneX(p.lane);
       const dy = this.map.ground(p.z) + p.y + 0.9 - (feet + m.height * 0.5);
       if (dx * dx + dz * dz + dy * dy * 0.3 >= r2) continue;
@@ -239,14 +248,22 @@ export class RunSession {
         this.events.push({ type: 'soulHelped', pickup: p });
       } else if (p.kind === 'temptation') {
         this.moral.takeTemptation();
-        this.score.coins += CONFIG.moral.temptationCoins;
-        this.events.push({ type: 'temptationTaken', pickup: p, coins: CONFIG.moral.temptationCoins });
+        const coins = this.temptationValue(p.z);
+        this.score.coins += coins;
+        this.events.push({ type: 'temptationTaken', pickup: p, coins });
       } else {
         this.moral.miracle();
         this.shield = true;
         this.events.push({ type: 'miracle', pickup: p });
       }
     }
+  }
+
+  /** Cursed gold is worth more the closer you get to judgment: 25 in Hell, 50 on the Stairway, 75 in Heaven. */
+  temptationValue(z: number): number {
+    const id = this.map.stageAt(z).id;
+    const m = CONFIG.moral;
+    return id === 'hell' ? m.temptationCoins : id === 'stairway' ? m.temptationCoinsStairway : m.temptationCoinsHeaven;
   }
 
   private checkProgress(): void {

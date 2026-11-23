@@ -22,6 +22,7 @@ interface Active {
   kind: PickupKind;
   obj: THREE.Object3D;
   data: PickupData;
+  x: number; // current sideways position (slides when cursed gold drifts)
 }
 
 /**
@@ -120,11 +121,12 @@ export class PickupRenderer {
         obj.visible = true;
         obj.scale.setScalar(obj.userData.base ?? 1);
         this.group.add(obj);
-        a = { kind: p.kind, obj, data: p };
+        a = { kind: p.kind, obj, data: p, x: laneX(p.lane) };
         this.active.set(p.id, a);
       }
       const bob = Math.sin(this.time * 2.5 + p.z) * 0.12;
-      a.obj.position.set(laneX(p.lane), this.map.ground(p.z) - g0 + p.y + bob, -(p.z - distance));
+      a.x += (laneX(p.lane) - a.x) * Math.min(1, dt * 7);
+      a.obj.position.set(a.x, this.map.ground(p.z) - g0 + p.y + bob, -(p.z - distance));
       if (p.kind === 'temptation') {
         const gem = a.obj.getObjectByName('gem');
         if (gem) gem.rotation.y = this.time * 2;

@@ -174,3 +174,50 @@ describe('a robot can survive the course (it is always fair)', () => {
     expect(s.devil.gap).toBeGreaterThan(CONFIG.devil.stumblePenalty);
   });
 });
+
+describe('Harder temptations (Decisions log #41)', () => {
+  const all = new TrackGenerator(21).generate(JOURNEY_LENGTH, 22);
+  it('some cursed gold sits in the only open lane, with walls in the other two', () => {
+    const g = all.pickups.filter((p) => p.gauntlet);
+    expect(g.length).toBeGreaterThan(2);
+    for (const p of g) {
+      const walls = all.obstacles.filter((o) => o.z === p.z && o.kind === 'wall');
+      expect(walls).toHaveLength(2);
+      expect(walls.some((w) => w.lane === p.lane)).toBe(false);
+    }
+  });
+  it('a trail of coins leads into the cursed gold', () => {
+    const t = all.pickups.filter((p) => p.kind === 'temptation');
+    const lured = t.filter((p) => all.coins.some((c) => c.lane === p.lane && p.z - c.z > 0 && p.z - c.z < 4));
+    expect(lured.length / t.length).toBeGreaterThan(0.8);
+  });
+  it('some cursed gold drifts into your lane as you approach', () => {
+    const s = new RunSession(3, { distance: 1000 });
+    s.obstacles = [];
+    s.pickups = [{ id: 1, kind: 'temptation', lane: 0, z: s.distance + 12, y: 0, taken: false, resolved: false, drift: true }];
+    s.update(1 / 60);
+    expect(s.pickups[0].lane).toBe(1);
+    expect(s.drainEvents().some((e) => e.type === 'temptationDrift')).toBe(true);
+  });
+  it('jumping over cursed gold resists it; running into it takes it', () => {
+    const run = (jump: boolean) => {
+      const s = new RunSession(3, { distance: 1000 });
+      s.obstacles = [];
+      s.pickups = [{ id: 1, kind: 'temptation', lane: 1, z: s.distance + 3.2, y: 0, taken: false, resolved: false }];
+      if (jump) s.act('jump');
+      for (let i = 0; i < 40; i++) {
+        s.obstacles = [];
+        s.update(1 / 60);
+      }
+      return s.moral.record;
+    };
+    expect(run(false).temptationsTaken).toBe(1);
+    expect(run(true).temptationsResisted).toBe(1);
+  });
+  it('the piles grow: 25 coins in Hell, 50 on the Stairway, 75 in Heaven', () => {
+    const s = new RunSession(1);
+    expect(s.temptationValue(100)).toBe(25);
+    expect(s.temptationValue(stageStart('stairway') + 10)).toBe(50);
+    expect(s.temptationValue(stageStart('gardens') + 10)).toBe(75);
+  });
+});

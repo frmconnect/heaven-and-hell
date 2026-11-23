@@ -23,6 +23,9 @@ export interface PickupData {
   y: number;
   taken: boolean;
   resolved: boolean; // counted (helped / missed / taken / resisted)
+  drift?: boolean; // temptation that slides into the player's lane
+  drifted?: boolean;
+  gauntlet?: boolean; // temptation in the only open lane (jump over it)
 }
 
 const K: Record<string, ObstacleKind | null> = { ' ': null, L: 'low', H: 'high', W: 'wall', V: 'pit' };
@@ -85,6 +88,18 @@ export class TrackGenerator {
         this.lastRowZ = -1e9;
         continue;
       }
+      // temptation gauntlet: walls in two lanes, cursed gold in the only open one (Decisions log #41)
+      if (map.moral && z >= this.nextEncounterZ && this.lastRowZ > -1e8 && z - this.lastRowZ >= 11 && map.difficultyAt(z) > 0.08 && this.rng.chance(CONFIG.moral.gauntletChance)) {
+        const m = CONFIG.moral;
+        this.nextEncounterZ = z + this.rng.range(m.encounterEvery[0], m.encounterEvery[1]);
+        const free = this.rng.int(0, 2);
+        for (let lane = 0; lane < 3; lane++) if (lane !== free) obstacles.push({ id: NEXT_ID++, kind: 'wall', lane, z, hit: false, theme: stage.id });
+        pickups.push({ id: NEXT_ID++, kind: 'temptation', lane: free, z, y: 0, taken: false, resolved: false, gauntlet: true });
+        this.lure(free, this.lastRowZ + 4, z - 2, coins);
+        this.lastRowZ = z;
+        this.nextRowZ += gap;
+        continue;
+      }
       const row = this.pickPattern(map.difficultyAt(z), stage.id);
       const freeLanes: number[] = [];
       for (let lane = 0; lane < 3; lane++) {
@@ -104,6 +119,10 @@ export class TrackGenerator {
         }
       }
       this.placePickups(z, row, pickups);
+      if (this.lureCoins.length) {
+        coins.push(...this.lureCoins);
+        this.lureCoins = [];
+      }
       this.lastRowZ = z;
       this.nextRowZ += gap;
     }
@@ -125,8 +144,13 @@ export class TrackGenerator {
       this.nextEncounterZ = z + this.rng.range(m.encounterEvery[0], m.encounterEvery[1]);
       if (this.rng.chance(m.temptationChance)) {
         const risky = [0, 1, 2].filter((l) => row[l] === 'L' || row[l] === 'H' || row[l] === 'V');
-        if (risky.length) add('temptation', this.rng.pick(risky), z - 4.5);
-        else add('temptation', this.rng.int(0, 2), mid);
+        const lane = risky.length ? this.rng.pick(risky) : this.rng.int(0, 2);
+        const pz = risky.length ? z - 4.5 : mid;
+        add('temptation', lane, pz);
+        // a trail of coins leads straight into it: skipping the gold means skipping the coins
+        this.lure(lane, Math.max(prev + 3, pz - 11), pz - 1.6, this.lureCoins);
+        const t = out[out.length - 1];
+        if (this.map.difficultyAt(z) > 0.1 && this.rng.chance(m.driftChance)) t.drift = true;
       } else {
         add('soul', this.rng.int(0, 2), mid);
       }
@@ -137,6 +161,14 @@ export class TrackGenerator {
       this.nextMiracleZ = z + this.rng.range(m.miracleEvery[0], m.miracleEvery[1]);
       add('miracle', this.rng.int(0, 2), mid, 0.4);
     }
+  }
+
+  /** Coins found by placePickups (it runs inside generate, which collects them). */
+  private lureCoins: CoinData[] = [];
+
+  /** A trail of normal coins leading into a temptation. */
+  private lure(lane: number, from: number, to: number, out: CoinData[]): void {
+    for (let cz = from; cz <= to; cz += CONFIG.coins.spacing) out.push(this.coin(lane, cz, 1));
   }
 
   private coin(lane: number, z: number, y: number): CoinData {
