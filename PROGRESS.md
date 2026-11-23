@@ -157,6 +157,8 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - Tested: every sound rendered and measured, including through a simulated phone speaker (none distort, none too quiet; WAVs in `art/sounds/`); browser run confirmed the right sounds fire in order; settings saved.
 - **Settings additions (built):** vibration on/off, graphics High/Low (Low: 1x sharpness, half the scenery, no particles), How to play, Privacy policy (live page: /privacy.html), Credits, Delete my online data (server function added by the owner and checked live), Reset progress (keeps settings) — both with an "Are you sure?" step.
 - **App icon draft (built):** owner's idea — runner sprinting into Heaven's open gates. `art/icon/icon-1024.png` + `icon-512.png`, rendered from the game's models (`node scripts/render-icon.cjs`); brief + prompts in `art/icon/ICON_BRIEF.md`. Owner will run it through the 3D generator.
+- **Store images (built):** 7 screenshots with headlines (Escape the Devil, Climb to Heaven, Heaven's Gate, Every choice counts, Face Judgment, Run forever, Earn your wings) for Google (1080×1920) and Apple 6.9" (1290×2796), plus the Google Play feature graphic (1024×500) — `art/store/`. Made from the real game by `npm run build && node scripts/store-shots.cjs` (re-run after new art; `ONLY=1,5` to redo some).
+- **Home-screen shortcut:** web app manifest + icons, so "Add to Home Screen" shows the game icon and opens full screen (owner plays this way).
 - Owner is working on: original songs, final icon (3D generator). Developer accounts: owner opens them when it's time to test/upload.
 - Next: owner's music (when ready), app packaging, money features, paid item list, remove test links.
 

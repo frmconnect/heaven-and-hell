@@ -5,9 +5,10 @@ import { PlayerAvatar } from '../src/player/PlayerAvatar';
 import { PlayerMotion } from '../src/player/PlayerMotion';
 import { DECOR, buildTile } from '../src/world/decor';
 
-export function renderIcon(size: number, cam: { x: number; y: number; z: number; lx: number; ly: number; lz: number; fov: number }, runnerZ: number, gateScale = 1): string {
+export function renderIcon(size: number | [number, number], cam: { x: number; y: number; z: number; lx: number; ly: number; lz: number; fov: number }, runnerZ: number, gateScale = 1): string {
   const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
-  r.setSize(size, size);
+  const [w, h] = Array.isArray(size) ? size : [size, size];
+  r.setSize(w, h);
   r.outputColorSpace = THREE.SRGBColorSpace;
   r.toneMapping = THREE.ACESFilmicToneMapping;
   r.toneMappingExposure = 1.05;
@@ -89,7 +90,7 @@ export function renderIcon(size: number, cam: { x: number; y: number; z: number;
   for (let i = 0; i < 9; i++) p.update(1 / 60, m, 14, null);
   p.root.position.set(0, 0, runnerZ);
 
-  const camera = new THREE.PerspectiveCamera(cam.fov, 1, 0.1, 400);
+  const camera = new THREE.PerspectiveCamera(cam.fov, w / h, 0.1, 400);
   camera.position.set(cam.x, cam.y, cam.z);
   camera.lookAt(cam.lx, cam.ly, cam.lz);
   r.render(scene, camera);
