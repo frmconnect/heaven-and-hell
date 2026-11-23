@@ -161,7 +161,9 @@ export class SettingsScreen {
           <h3>Final Freedom</h3>
           <p>Escape Hell. Climb to Heaven. Face Judgment. Earn Freedom. Compete for Eternity.</p>
           <h3>Created by</h3>
-          <p data-creator>The creator of Final Freedom — game concept, design and original music.</p>
+          <p data-creator><b>Cody Webb</b> — game concept, design and original music.</p>
+          <h3>Contact</h3>
+          <p>finalfreedommobilegame@gmail.com</p>
           <h3>Development</h3>
           <p>Built with Claude (Anthropic). 3D graphics with three.js. Sound effects synthesized for this game.</p>
           <h3>Thank you</h3>

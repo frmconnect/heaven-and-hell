@@ -38,6 +38,7 @@
 34. **Final name (owner):** **Final Freedom** — store title "Final Freedom: Hell to Heaven" (29 characters). The owner searched the trademark database and found no "Final Freedom"; only unrelated "Final …" names. Inside the game, "Heaven's Gate" stays the name of the gate. (Replaces the working title in #1.)
 35. **Making money (owner):** Free to download, ready **at launch**. (1) **Rewarded ads**, always the player's choice, never during a run: e.g. double coins after a run, double the daily reward. No forced ads, so no "remove ads" purchase. **No ad revives or score help in Ascended/leaderboard runs.** (2) **Real-money cosmetics** (special outfits, wings, trails) and a **supporter pack**, looks only. Never sell coins or upgrades for money (no pay-to-win; leaderboard scores earned). Exact items and prices to be chosen with the owner. Replaces "decide later" in #26.
 36. **Sound effects (owner asked; Claude's method):** Sound effects and world ambience are synthesized in code with the Web Audio API — original, no licences, nothing to download. Any sound can later be swapped for a recorded one. A Settings screen holds sound on/off + volume, ambience on/off, a "Preview sounds" list, and a place for the owner's music (#33).
+37. **Credits and contact (owner):** Credited as **Cody Webb** (game concept, design, original music). Support / privacy contact and store contact email: **finalfreedommobilegame@gmail.com**.
 
 ---
 
