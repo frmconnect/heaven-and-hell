@@ -80,7 +80,12 @@ export class AudioManager {
 
   /** Play a sound effect. `p` = pitch step (e.g. coins in a row). */
   play(name: SoundName, p = 0, minGapMs = 35): void {
-    if (!this.ctx || !this.sfx || !this.settings.sfxOn || this.ctx.state !== 'running') return;
+    if (!this.ctx || !this.sfx || !this.settings.sfxOn) return;
+    // the sound system can still be waking up (first tap on a phone): play once it's ready
+    if (this.ctx.state !== 'running') {
+      if (this.ctx.state === 'suspended' && !this.paused) void this.ctx.resume().then(() => this.ctx?.state === 'running' && this.play(name, p, 0));
+      return;
+    }
     const now = performance.now();
     if (now - (this.lastPlay.get(name) ?? 0) < minGapMs) return;
     this.lastPlay.set(name, now);
@@ -149,7 +154,10 @@ export class AudioManager {
   }
 
   /** Quieten everything while paused / in the background. */
+  private paused = false;
+
   setPaused(paused: boolean): void {
+    this.paused = paused;
     if (!this.ctx) return;
     try {
       if (paused) void this.ctx.suspend();

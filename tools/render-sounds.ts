@@ -16,8 +16,8 @@ function wav(buf: AudioBuffer): string {
   return btoa(s);
 }
 
-export async function renderSounds(): Promise<Record<string, { peak: number; rms: number; secs: number; wav: string }>> {
-  const out: Record<string, { peak: number; rms: number; secs: number; wav: string }> = {};
+export async function renderSounds(): Promise<Record<string, { peak: number; rms: number; phone: number; secs: number; wav: string }>> {
+  const out: Record<string, { peak: number; rms: number; phone: number; secs: number; wav: string }> = {};
   for (const [name, def] of Object.entries(SOUNDS)) {
     const ctx = new OfflineAudioContext(1, 44100 * 4, 44100);
     const g = ctx.createGain();
@@ -37,7 +37,23 @@ export async function renderSounds(): Promise<Record<string, { peak: number; rms
     const len = Math.min(d.length, last + 2205);
     const trimmed = new AudioBuffer({ length: len, sampleRate: 44100, numberOfChannels: 1 });
     trimmed.copyToChannel(d.subarray(0, len), 0);
-    out[name] = { peak, rms: Math.sqrt(sum / Math.max(1, last)), secs: len / 44100, wav: wav(trimmed) };
+    // how loud it is through a small phone speaker (which can't play below ~400 Hz)
+    const pc = new OfflineAudioContext(1, 44100 * 4, 44100);
+    const hp = pc.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 400;
+    hp.Q.value = 0.7;
+    const hp2 = pc.createBiquadFilter();
+    hp2.type = 'highpass';
+    hp2.frequency.value = 400;
+    const pg = pc.createGain();
+    pg.gain.value = 0.8;
+    pg.connect(hp).connect(hp2).connect(pc.destination);
+    def.fn(pc, pg, 0.01, 0);
+    const pb = (await pc.startRendering()).getChannelData(0);
+    let phonePeak = 0;
+    for (let i = 0; i < pb.length; i++) phonePeak = Math.max(phonePeak, Math.abs(pb[i]));
+    out[name] = { peak, rms: Math.sqrt(sum / Math.max(1, last)), phone: phonePeak, secs: len / 44100, wav: wav(trimmed) };
   }
   return out;
 }

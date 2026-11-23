@@ -153,7 +153,8 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 ## Phase 7 — in progress
 - **Sound effects (built):** 37 effects + quiet world ambience (lava rumble in Hell, wind in Heaven, space hum in the Cosmic Heavens), all synthesized in code — original, no licences (Decisions log #36). Coins rise in pitch in a row; heartbeat when the chaser is close; Devil roar at the start; Heaven's Gate chord; judgment chords.
 - **Settings screen (built):** sound effects on/off, volume, world sounds on/off, "Preview sounds" list, music placeholder for the owner's songs.
-- Tested: every sound rendered and measured (none distort, none too quiet; WAVs in `art/sounds/`); browser run confirmed the right sounds fire in order; settings saved.
+- Fixed after owner test: some sounds were nearly silent on phone speakers (too deep) — added higher tones; the render check now also simulates a phone speaker. First tap now waits for the sound system to wake up.
+- Tested: every sound rendered and measured, including through a simulated phone speaker (none distort, none too quiet; WAVs in `art/sounds/`); browser run confirmed the right sounds fire in order; settings saved.
 - Next: owner's music (when ready), app packaging, money features, paid item list, remove test links.
 
 ## Technical decisions

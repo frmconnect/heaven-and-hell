@@ -23,9 +23,9 @@ const root = path.join(__dirname, '..');
   const bad = [];
   for (const [name, r] of Object.entries(res)) {
     fs.writeFileSync(path.join(dir, `${name}.wav`), Buffer.from(r.wav, 'base64'));
-    const flag = r.peak >= 0.99 ? 'CLIPS' : r.peak < 0.03 ? 'TOO QUIET' : 'ok';
+    const flag = r.peak >= 0.99 ? 'CLIPS' : r.peak < 0.03 ? 'TOO QUIET' : r.phone < 0.06 ? 'QUIET ON PHONE' : 'ok';
     if (flag !== 'ok') bad.push(name);
-    console.log(`${name.padEnd(14)} peak ${r.peak.toFixed(2)}  rms ${r.rms.toFixed(3)}  ${r.secs.toFixed(2)} s  ${flag}`);
+    console.log(`${name.padEnd(14)} peak ${r.peak.toFixed(2)}  phone ${r.phone.toFixed(2)}  ${r.secs.toFixed(2)} s  ${flag}`);
   }
   console.log(bad.length ? `PROBLEMS: ${bad.join(', ')}` : 'all sounds ok');
   await b.close(); vite.kill();
