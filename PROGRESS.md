@@ -155,8 +155,9 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - **Settings screen (built):** sound effects on/off, volume, world sounds on/off, "Preview sounds" list, music placeholder for the owner's songs.
 - Fixed after owner test: some sounds were nearly silent on phone speakers (too deep) — added higher tones; the render check now also simulates a phone speaker. First tap now waits for the sound system to wake up.
 - Tested: every sound rendered and measured, including through a simulated phone speaker (none distort, none too quiet; WAVs in `art/sounds/`); browser run confirmed the right sounds fire in order; settings saved.
-- **Settings additions (built):** vibration on/off, graphics High/Low (Low: 1x sharpness, half the scenery, no particles), How to play, Privacy policy (live page: /privacy.html), Credits, Delete my online data (needs owner to run `supabase/add-delete-my-data.sql`), Reset progress (keeps settings) — both with an "Are you sure?" step.
+- **Settings additions (built):** vibration on/off, graphics High/Low (Low: 1x sharpness, half the scenery, no particles), How to play, Privacy policy (live page: /privacy.html), Credits, Delete my online data (server function added by the owner and checked live), Reset progress (keeps settings) — both with an "Are you sure?" step.
 - **App icon draft (built):** owner's idea — runner sprinting into Heaven's open gates. `art/icon/icon-1024.png` + `icon-512.png`, rendered from the game's models (`node scripts/render-icon.cjs`); brief + prompts in `art/icon/ICON_BRIEF.md`. Owner will run it through the 3D generator.
+- Owner is working on: original songs, final icon (3D generator). Developer accounts: owner opens them when it's time to test/upload.
 - Next: owner's music (when ready), app packaging, money features, paid item list, remove test links.
 
 ## Technical decisions
