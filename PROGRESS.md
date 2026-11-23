@@ -155,6 +155,7 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - **Settings screen (built):** sound effects on/off, volume, world sounds on/off, "Preview sounds" list, music placeholder for the owner's songs.
 - Fixed after owner test: some sounds were nearly silent on phone speakers (too deep) — added higher tones; the render check now also simulates a phone speaker. First tap now waits for the sound system to wake up.
 - Tested: every sound rendered and measured, including through a simulated phone speaker (none distort, none too quiet; WAVs in `art/sounds/`); browser run confirmed the right sounds fire in order; settings saved.
+- **Settings additions (built):** vibration on/off, graphics High/Low (Low: 1x sharpness, half the scenery, no particles), How to play, Privacy policy (live page: /privacy.html), Credits, Delete my online data (needs owner to run `supabase/add-delete-my-data.sql`), Reset progress (keeps settings) — both with an "Are you sure?" step.
 - **App icon draft (built):** owner's idea — runner sprinting into Heaven's open gates. `art/icon/icon-1024.png` + `icon-512.png`, rendered from the game's models (`node scripts/render-icon.cjs`); brief + prompts in `art/icon/ICON_BRIEF.md`. Owner will run it through the 3D generator.
 - Next: owner's music (when ready), app packaging, money features, paid item list, remove test links.
 
@@ -175,6 +176,8 @@ Phase 1 — **Complete**. Phase 2 — **Complete** (owner play-tested). Phase 3 
 - Backup play link: `scripts/make-single-file.mjs` packs the build into one file, published as a private claude.ai page.
 
 ## Open design decisions
+- **Credits name:** how the owner wants to be credited (Settings → Credits currently says "The creator of Final Freedom").
+- **Support email:** needed on the privacy page and both store listings (a new address just for the game is fine).
 - **Money (Decisions log #35, at launch):** rewarded ads (double coins after a run, double daily reward; never during runs, never in leaderboard runs) + real-money cosmetics and a supporter pack. Still to choose: the paid items and prices. Needs: AdMob account, banking/tax info in both developer accounts (owner), ad consent pop-up, updated privacy forms. Built during app packaging (needs the native apps).
 - **Music:** owner is making original songs (Decisions log #33). When ready: Settings screen with music on/off, volume, choose a song or shuffle; sound effects on/off.
 - More shop items: owner will suggest ideas.

@@ -146,6 +146,17 @@ export class Environment {
     this.group.add(this.stars);
   }
 
+  private low = false;
+
+  /** Graphics quality: Low skips half the roadside scenery and the floating particles (older phones). */
+  setQuality(low: boolean): void {
+    if (low === this.low) return;
+    this.low = low;
+    this.particles.visible = !low;
+    for (const p of this.decor.values()) this.give(p);
+    this.decor.clear();
+  }
+
   /** Switch between the journey and the Ascended State map; clears the old world. */
   setMap(map: WorldMap): void {
     if (map === this.map) return;
@@ -238,6 +249,7 @@ export class Environment {
         const theme = map.stageAt(z).id;
         // keep the Gate area clear of clutter
         if (map.gateZ !== null && Math.abs(z - map.gateZ) < 25) return null;
+        if (this.low && k % 2 !== 0) return null;
         const specs = DECOR[theme];
         const i = Math.floor(hash(k, 1) * specs.length);
         const spec: DecorSpec = specs[i];

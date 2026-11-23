@@ -52,6 +52,8 @@ export interface SaveState {
   sfxOn: number; // 1 = on
   sfxVolume: number; // 0..1
   ambienceOn: number;
+  vibrateOn: number; // 1 = phone buzzes on stumbles and crashes
+  graphics: number; // 1 = high, 0 = low (for older phones)
 }
 
 export interface KeyValueStore {
@@ -69,8 +71,11 @@ export const defaultSave = (): SaveState => ({
   wallet: 0, walletReady: 1, owned: [], outfit: 'pilgrim', wings: 'none', trail: 'none',
   upFlight: 0, upSlowmo: 0, upMagnet: 0, dailyDay: 0, dailyStreak: 0, testerGift: 0,
   playerId: '', playerName: '', pendScore: 0, pendDistance: 0, pendCoins: 0, pendDuration: 0,
-  sfxOn: 1, sfxVolume: 0.8, ambienceOn: 1,
+  sfxOn: 1, sfxVolume: 0.8, ambienceOn: 1, vibrateOn: 1, graphics: 1,
 });
+
+/** Settings and identity survive a progress reset; everything else starts over. */
+const KEEP_ON_RESET = ['sfxOn', 'sfxVolume', 'ambienceOn', 'vibrateOn', 'graphics', 'playerId', 'playerName', 'testerGift', 'walletReady'] as const;
 
 const STRING_KEYS = ['outfit', 'wings', 'trail', 'playerId', 'playerName'] as const;
 
@@ -114,6 +119,22 @@ export class SaveData {
     } catch {
       /* storage full or blocked: ignore */
     }
+  }
+
+  /** Start the game over from scratch (keeps settings and the leaderboard identity). */
+  resetProgress(): void {
+    const fresh = defaultSave();
+    for (const k of KEEP_ON_RESET) (fresh as unknown as Record<string, unknown>)[k] = this.data[k];
+    this.data = fresh;
+    this.save();
+  }
+
+  /** After deleting online data: a brand-new anonymous player id and no name. */
+  newIdentity(id: string): void {
+    this.data.playerId = id;
+    this.data.playerName = '';
+    this.data.pendScore = this.data.pendDistance = this.data.pendCoins = this.data.pendDuration = 0;
+    this.save();
   }
 
   /** Remember reaching Heaven's Gate, so a crash in Heaven restarts there. */

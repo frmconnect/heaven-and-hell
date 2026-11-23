@@ -92,6 +92,12 @@ export class Leaderboard {
     return r.ok ? { ok: true } : { ok: false, error: r.error ?? 'refused' };
   }
 
+  /** Delete every score this player has on the server ("Delete my data"). Returns true if done. */
+  async deleteMine(playerId: string): Promise<boolean> {
+    const r = await this.rpc<{ ok: boolean }>('delete_my_scores', { p_player: playerId });
+    return !!r?.ok;
+  }
+
   async top(period: Period, playerId: string, limit = 50): Promise<BoardRow[] | null> {
     const rows = await this.rpc<{ rank: number; name: string; score: number; is_me: boolean }[]>('get_leaderboard', { p_period: period, p_player: playerId, p_limit: limit });
     return rows ? rows.map((r) => ({ rank: Number(r.rank), name: r.name, score: r.score, isMe: !!r.is_me })) : null;

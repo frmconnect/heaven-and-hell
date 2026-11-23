@@ -157,10 +157,29 @@ export class Game {
       (id) => isUnlocked(id, this.save.data.ascendedBestDistance),
       (name) => this.audio.play(name),
     );
-    this.settingsScreen = new SettingsScreen(uiRoot, this.save, this.audio, () => {
-      this.settingsScreen.close();
-      this.showMenu();
-    });
+    this.settingsScreen = new SettingsScreen(
+      uiRoot,
+      this.save,
+      this.audio,
+      () => {
+        this.settingsScreen.close();
+        this.showMenu();
+      },
+      {
+        onGraphics: () => this.applyGraphics(),
+        // "Delete my data": remove scores from the server, then become a new anonymous player
+        onDeleteOnline: async () => {
+          const ok = await this.lb.deleteMine(this.save.data.playerId);
+          if (ok) this.save.newIdentity(newPlayerId());
+          return ok;
+        },
+        onResetProgress: () => {
+          this.save.resetProgress();
+          this.applyLooks();
+        },
+      },
+    );
+    this.applyGraphics();
     this.applyLooks();
     // desktop: E or Enter uses the ability
     window.addEventListener('keydown', (e) => {
@@ -271,6 +290,19 @@ export class Game {
         });
       } else this.screens.setOnlineNote(msg);
     });
+  }
+
+  /** Graphics quality (Settings): Low = sharpness 1x, half the scenery, no floating particles. */
+  private applyGraphics(): void {
+    const low = !this.save.data.graphics;
+    this.renderer.setPixelRatio(low ? 1 : Math.min(window.devicePixelRatio || 1, CONFIG.maxPixelRatio));
+    this.env.setQuality(low);
+    this.resize();
+  }
+
+  /** Phone vibration, if the player hasn't switched it off in Settings. */
+  private buzz(pattern: number | number[]): void {
+    if (this.save.data.vibrateOn) navigator.vibrate?.(pattern);
   }
 
   /** Put the equipped outfit, wings and trail on the runner (Decisions log #24). */
@@ -426,7 +458,7 @@ export class Game {
         case 'stumble':
           this.player.stumble();
           this.shake = 0.35;
-          navigator.vibrate?.(60);
+          this.buzz(60);
           if (!s.ended) {
             const close = s.devil.danger > 0.6;
             const warn = s.chaser === 'none' ? 'YOUR LIGHT IS FADING!' : s.chaser === 'shadow' ? 'YOUR SINS ARE CLOSE!' : 'HE IS CLOSE!';
@@ -436,7 +468,7 @@ export class Game {
           break;
         case 'end':
           this.shake = 0.6;
-          navigator.vibrate?.([80, 40, 160]);
+          this.buzz([80, 40, 160]);
           this.endTimer = END_DELAY;
           // from the Stairway on, the Shadow drags you down and the floor gives way (Decisions log #15)
           if (e.reason === 'caught' && s.chaser === 'shadow') {
@@ -446,7 +478,7 @@ export class Game {
           break;
         case 'devilGivesUp':
           this.shake = 0.8;
-          navigator.vibrate?.([40, 30, 40]);
+          this.buzz([40, 30, 40]);
           this.hud.toast('YOU ESCAPED THE DEVIL', 2.8, 'But your sins still follow you…');
           this.hud.setChaser('YOUR SINS');
           break;
@@ -466,7 +498,7 @@ export class Game {
           break;
         case 'soulHelped':
           this.hud.pop('+ GRACE · Soul saved', 'grace');
-          navigator.vibrate?.(20);
+          this.buzz(20);
           break;
         case 'soulLost':
           this.hud.pop('A lost soul was left behind', 'info');
@@ -474,7 +506,7 @@ export class Game {
         case 'temptationTaken':
           this.hud.pop(`+ SIN · +${e.coins} coins`, 'sin');
           this.shadow.setSin(s.moral.sin);
-          navigator.vibrate?.([30, 30, 30]);
+          this.buzz([30, 30, 30]);
           break;
         case 'resisted':
           this.hud.pop('Temptation resisted · + GRACE', 'grace');
@@ -495,7 +527,7 @@ export class Game {
           break;
         case 'abilityReady':
           this.hud.pop(`${ABILITIES[s.ability?.selected ?? 'flight'].name} ready · tap ✦`, 'grace');
-          navigator.vibrate?.(30);
+          this.buzz(30);
           break;
         case 'abilityStart':
           this.hud.toast(ABILITIES[e.id].name.toUpperCase(), 1.2);

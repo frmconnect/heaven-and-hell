@@ -64,6 +64,17 @@ describe('Leaderboard client', () => {
     expect(await lb.submit(entry())).toEqual({ ok: false, error: 'offline' });
     expect(await lb.myRank('daily', 'me')).toBeNull();
   });
+  it('"Delete my data" asks the server to remove this player\'s scores', async () => {
+    const calls: string[] = [];
+    const lb = new Leaderboard({ url: 'https://x.supabase.co', anonKey: 'sb_publishable_k' }, async (url: string, init: { body: string }) => {
+      calls.push(url + ' ' + init.body);
+      return { ok: true, status: 200, json: async () => ({ ok: true, deleted: 3 }) };
+    });
+    expect(await lb.deleteMine('me-123')).toBe(true);
+    expect(calls[0]).toContain('/rpc/delete_my_scores');
+    expect(calls[0]).toContain('me-123');
+    expect(await new Leaderboard(null).deleteMine('x')).toBe(false);
+  });
   it('player ids look like UUIDs and differ', () => {
     const a = newPlayerId(), b = newPlayerId();
     expect(a).toMatch(/^[0-9a-f-]{36}$/);

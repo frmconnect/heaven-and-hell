@@ -104,3 +104,33 @@ describe('Tester gift (?gift link, testing only)', () => {
     expect(save.data.wallet).toBe(10050);
   });
 });
+
+describe('Settings: reset progress', () => {
+  it('starts the game over but keeps settings and the leaderboard identity', () => {
+    const { save } = fresh(5000);
+    save.data.sfxVolume = 0.3;
+    save.data.vibrateOn = 0;
+    save.data.playerId = 'abc';
+    save.data.playerName = 'Holy Dove 3';
+    save.data.ascended = 1;
+    save.data.bestScore = 999;
+    save.data.owned = ['angel'];
+    save.resetProgress();
+    expect(save.data.wallet).toBe(0);
+    expect(save.data.ascended).toBe(0);
+    expect(save.data.bestScore).toBe(0);
+    expect(save.data.owned).toEqual([]);
+    expect(save.data.sfxVolume).toBe(0.3);
+    expect(save.data.vibrateOn).toBe(0);
+    expect(save.data.playerName).toBe('Holy Dove 3');
+  });
+  it('a new identity clears the name and any unsent score', () => {
+    const { save } = fresh(0);
+    save.data.playerName = 'Holy Dove 3';
+    save.data.pendScore = 500;
+    save.newIdentity('new-id');
+    expect(save.data.playerId).toBe('new-id');
+    expect(save.data.playerName).toBe('');
+    expect(save.data.pendScore).toBe(0);
+  });
+});

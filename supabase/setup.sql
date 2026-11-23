@@ -80,3 +80,15 @@ $$;
 grant execute on function public.submit_score(uuid, text, int, int, int, real) to anon;
 grant execute on function public.get_leaderboard(text, uuid, int) to anon;
 grant execute on function public.get_my_rank(text, uuid) to anon;
+
+-- "Delete my data" button in the game's Settings: removes every score of one player.
+-- (Player ids are random and never shown, so only that phone knows its own id.)
+create or replace function public.delete_my_scores(p_player uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare n int;
+begin
+  delete from scores where player_id = p_player;
+  get diagnostics n = row_count;
+  return json_build_object('ok', true, 'deleted', n);
+end $$;
+grant execute on function public.delete_my_scores(uuid) to anon;
