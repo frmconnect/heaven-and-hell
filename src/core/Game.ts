@@ -11,6 +11,9 @@ import { SaveData } from '../systems/SaveData';
 import { giveTesterGift, itemById, Shop } from '../systems/Shop';
 import { Leaderboard, newPlayerId } from '../systems/Leaderboard';
 import { Analytics } from '../systems/Analytics';
+import { MissionTracker, type MissionEvent } from '../systems/MissionTracker';
+import { emptyStats, type RunStats } from '../systems/Missions';
+import { MissionsScreen } from '../ui/MissionsScreen';
 import { createGameAnalyticsSink } from '../systems/GameAnalyticsSink';
 import { GA_GAME_KEY, GA_SECRET_KEY } from './analyticsConfig';
 import { ONLINE } from './online';
@@ -56,6 +59,13 @@ export class Game {
   private lb = new Leaderboard(ONLINE);
   /** How people play, for tuning the game (Decisions log #39). */
   readonly analytics = new Analytics();
+  private missions!: MissionTracker;
+  private missionsScreen!: MissionsScreen;
+  /** What the current run has achieved, for challenges and missions. */
+  private stats: RunStats = emptyStats();
+  private statsBase = { distance: 0, coins: 0 };
+  private lastStumbleAt = 0;
+  private missionTick = 0;
   private boardScreen: LeaderboardScreen;
   private audio: AudioManager;
   private settingsScreen: SettingsScreen;
@@ -90,6 +100,7 @@ export class Game {
     this.crumble = new Crumble(this.scene);
     this.trail = new TrailRenderer(this.scene);
     this.shop = new Shop(this.save);
+    this.missions = new MissionTracker(this.save);
     this.shop.onCoins = (flow, amount, kind, id) =>
       flow === 'out' ? this.analytics.coinsOut(amount, kind as 'shop' | 'upgrade', id) : this.analytics.coinsIn(amount, 'daily', id);
     this.startAnalytics();
@@ -134,6 +145,11 @@ export class Game {
         this.screens.hideAll();
         this.settingsScreen.open();
       },
+      onOpenMissions: () => {
+        this.analytics.event('menu:challenges');
+        this.screens.hideAll();
+        this.missionsScreen.open();
+      },
     });
     // anonymous player id for the online leaderboard (Decisions log #32)
     if (!this.save.data.playerId) {
@@ -167,6 +183,10 @@ export class Game {
       (id) => isUnlocked(id, this.save.data.ascendedBestDistance),
       (name) => this.audio.play(name),
     );
+    this.missionsScreen = new MissionsScreen(uiRoot, this.missions, () => {
+      this.missionsScreen.close();
+      this.showMenu();
+    });
     this.settingsScreen = new SettingsScreen(
       uiRoot,
       this.save,
@@ -206,8 +226,13 @@ export class Game {
       const before = { lane: m.lane, vy: m.vy, sliding: m.sliding };
       this.session.act(a);
       if (m.lane !== before.lane) this.audio.play('lane');
-      else if (a === 'jump' && m.vy > 0 && before.vy <= 0) this.audio.play('jump');
-      else if (a === 'slide' && m.sliding && !before.sliding) this.audio.play('slide');
+      else if (a === 'jump' && m.vy > 0 && before.vy <= 0) {
+        this.audio.play('jump');
+        this.stats.jumps++;
+      } else if (a === 'slide' && m.sliding && !before.sliding) {
+        this.audio.play('slide');
+        this.stats.slides++;
+      }
     });
 
     this.state.onChange((to) => {
@@ -252,7 +277,7 @@ export class Game {
       best: this.save.data.ascendedBestScore,
       selected: this.selectedAbility(),
       unlocked: Object.fromEntries(ABILITY_ORDER.map((id) => [id, isUnlocked(id, this.save.data.ascendedBestDistance)])) as Record<AbilityId, boolean>,
-    }, this.save.data.wallet);
+    }, this.save.data.wallet, 3 - this.missions.dailyDoneCount());
   }
 
   /**
@@ -308,6 +333,47 @@ export class Game {
         });
       } else this.screens.setOnlineNote(msg);
     });
+  }
+
+  /** A run begins: start counting what it achieves (challenges and missions). */
+  private beginStats(): void {
+    const s = this.session;
+    this.stats = emptyStats(s.ascended ? 'ascended' : 'journey');
+    this.statsBase = { distance: s.distance, coins: s.score.coins };
+    this.lastStumbleAt = s.distance;
+    this.stats.stageIndex = s.ascended ? 0 : s.stageIndex;
+    this.missions.startRun();
+  }
+
+  /** Bring the run's numbers up to date and pay any challenge or mission just completed. */
+  private updateMissions(final = false): void {
+    const s = this.session;
+    const st = this.stats;
+    st.distance = s.distance - this.statsBase.distance;
+    st.coins = Math.max(0, s.score.coins - this.statsBase.coins);
+    st.bestClean = Math.max(st.bestClean, s.distance - this.lastStumbleAt);
+    st.maxMultiplier = s.score.bestMultiplier;
+    if (!s.ascended) st.stageIndex = Math.max(st.stageIndex, s.stageIndex);
+    this.showMissionEvents(this.missions.update(st), final);
+  }
+
+  private showMissionEvents(events: MissionEvent[], final: boolean): void {
+    for (const e of events) {
+      if (e.kind === 'daily') {
+        this.hud.pop(`✓ Challenge done · +${e.reward} coins`, 'grace');
+        this.analytics.event('challenge:daily_done');
+      } else if (e.kind === 'dailyAll') {
+        this.hud.pop(`All 3 challenges done! +${e.reward} coins`, 'grace');
+        this.analytics.event('challenge:daily_all');
+      } else if (e.kind === 'mission') {
+        this.hud.pop(`✓ Mission: ${e.text}`, 'grace');
+      } else {
+        this.hud.toast(`MISSION LEVEL ${e.level}`, 2.2, e.unlock ? `Unlocked: ${e.unlock}!` : `+${e.reward} coins`);
+        this.analytics.event('challenge:mission_level', e.level);
+      }
+      this.audio.play(e.kind === 'missionLevel' ? 'levelComplete' : 'checkpoint');
+    }
+    if (final && events.length) this.screens.setOnlineNote(events.map((e) => (e.kind === 'missionLevel' ? `Mission level ${e.level}!` : e.kind === 'daily' ? 'Challenge done!' : e.kind === 'dailyAll' ? 'All daily challenges done!' : 'Mission goal done!')).join(' · '));
   }
 
   /** Switch on GameAnalytics if keys are set (it loads in the background; the game never waits for it). */
@@ -384,6 +450,7 @@ export class Game {
     this.audio.play('run');
     this.audio.ambience(this.session.stage.id);
     this.analytics.runStart('ascended', this.session.stage.id);
+    this.beginStats();
     this.analytics.event(`ascended:ability:${ability}`, this.shop.upgradeLevel(ability));
   }
 
@@ -424,6 +491,7 @@ export class Game {
     this.audio.ambience(stage.id);
     if (d === 0) setTimeout(() => this.audio.play('devilRoar'), 300);
     this.analytics.runStart('journey', stage.id, d > 0);
+    this.beginStats();
     if (this.runCount === 1 && this.save.data.runs < 3 && d === 0) {
       this.hud.hint('Swipe ← → ↑ ↓ to escape the Devil');
       setTimeout(() => this.hud.hint(null), 4000);
@@ -593,6 +661,8 @@ export class Game {
         break;
       }
       case 'stumble':
+        this.stats.bestClean = Math.max(this.stats.bestClean, s.distance - this.lastStumbleAt);
+        this.lastStumbleAt = s.distance;
         a.play('stumble');
         if (!s.ended && s.devil.danger > 0.6) setTimeout(() => a.play('heartbeat'), 250);
         break;
@@ -613,17 +683,17 @@ export class Game {
         a.ambience(e.stage.id);
         a.play(e.stage.id === 'gate' ? 'gate' : 'stage');
         break;
-      case 'soulHelped': a.play('soulSaved'); break;
+      case 'soulHelped': a.play('soulSaved'); this.stats.souls++; break;
       case 'soulLost': a.play('soulLost'); break;
       case 'temptationTaken': a.play('temptation'); this.analytics.event('journey:temptation_taken'); break;
-      case 'resisted': a.play('resisted'); break;
-      case 'miracle': a.play('miracle'); break;
+      case 'resisted': a.play('resisted'); this.stats.resisted++; break;
+      case 'miracle': a.play('miracle'); this.stats.miracles++; break;
       case 'shieldUsed': a.play('shieldBreak'); this.analytics.event('miracle:saved_you'); break;
       case 'levelComplete': a.play('levelComplete'); break;
       case 'multiplier': a.play('multiplier', e.value - 2); this.analytics.event('ascended:multiplier', e.value); break;
       case 'abilityReady': a.play('abilityReady'); break;
-      case 'abilityStart': a.play(e.id === 'flight' ? 'flight' : e.id === 'slowmo' ? 'slowmo' : 'magnet'); this.analytics.event(`ascended:ability_used:${e.id}`); break;
-      case 'journeyComplete': a.ambience('god'); this.analytics.journeyComplete(s.score.score, s.score.coins); break;
+      case 'abilityStart': a.play(e.id === 'flight' ? 'flight' : e.id === 'slowmo' ? 'slowmo' : 'magnet'); this.analytics.event(`ascended:ability_used:${e.id}`); this.stats.abilities++; break;
+      case 'journeyComplete': a.ambience('god'); this.analytics.journeyComplete(s.score.score, s.score.coins); this.stats.reachedGod = true; break;
     }
   }
 
@@ -636,6 +706,11 @@ export class Game {
       // Slow Motion slows the world; ability timers use real time
       s.update(dt * s.timeScale, dt);
       this.handleEvents();
+      this.missionTick += dt;
+      if (this.missionTick > 0.5) {
+        this.missionTick = 0;
+        this.updateMissions();
+      }
       // landing thump, and a heartbeat while the chaser is right behind you
       const air = s.motion.y > 0.05;
       if (this.wasAirborne && !air && !s.over) this.audio.play('land');
@@ -724,6 +799,8 @@ export class Game {
       this.save.recordJudgment(j.percent, j.passed, j.verdict === 'perfect', j.rewardCoins);
       this.analytics.judgment(j.passed, j.percent, j.rewardCoins, s.moral.record.soulsHelped, s.moral.record.temptationsTaken);
       if (j.passed) this.analytics.playerType(true);
+      this.stats.passedJudgment = j.passed;
+      this.updateMissions(true);
       if (this.state.go(GameState.Judgment)) {
         this.screens.showJudgment(j, s.moral.record);
         this.audio.ambience('');
@@ -747,6 +824,7 @@ export class Game {
       });
       // only Ascended scores go online (the competitive score)
       this.submitAscended(s.score.score, s.distance, s.score.coins, s.time);
+      this.updateMissions(true);
       return;
     }
     this.audio.play('gameOver');
@@ -764,6 +842,7 @@ export class Game {
       isNewBest: isBest,
       canContinue: afterGate,
     });
+    this.updateMissions(true);
   }
 }
 

@@ -235,3 +235,22 @@ html, body {
 .howto { text-align: left; }
 .howto h3 { margin: 10px 0 2px; font-size: 15px; color: #ffcf8a; letter-spacing: 1px; }
 .howto p { margin: 0; font-size: 14px; line-height: 1.55; opacity: .92; }
+
+/* Challenges and missions */
+.screen.missions { justify-content: flex-start; padding-top: calc(var(--safe-top) + 12px); background: radial-gradient(ellipse at 50% 20%, rgba(40,30,80,.96), rgba(8,4,20,.98)); }
+.goal { padding: 12px; border-radius: 12px; background: rgba(255,255,255,.06); text-align: left; }
+.goal-top { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 15px; }
+.goal-check { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 2px solid rgba(255,220,150,.6); display: grid; place-items: center; font-size: 13px; color: #3a2a00; }
+.goal.done .goal-check { background: #ffd257; border-color: #ffd257; }
+.goal-text { flex: 1; min-width: 0; }
+.goal-reward { flex: none; font-size: 13px; color: var(--gold); }
+.goal-bar { margin: 8px 0 4px 32px; height: 7px; border-radius: 4px; background: rgba(255,255,255,.12); overflow: hidden; }
+.goal-bar div { height: 100%; background: linear-gradient(90deg, #fff2b0, #ffc23a); border-radius: 4px; }
+.goal-num { margin-left: 32px; font-size: 12px; opacity: .75; font-variant-numeric: tabular-nums; }
+.goal.done { background: rgba(255,210,87,.14); }
+.goal.bonus .goal-top { opacity: .9; }
+.mission-level { font-size: 16px; font-weight: 900; letter-spacing: 3px; color: #ffcf8a; }
+.mission-level b { font-size: 30px; color: #fff; margin-left: 6px; }
+.unlock-next { margin-top: 6px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(255,210,87,.6); color: #fff1a8; font-size: 14px; }
+.badge { display: inline-block; margin-left: 6px; min-width: 18px; padding: 1px 6px; border-radius: 9px; background: #ff5a2a; color: #fff; font-size: 11px; font-weight: 900; }
+.shop-tag.lock { color: #c8b8ff; opacity: .9; }

@@ -89,7 +89,9 @@ export class ShopScreen {
           ? '<span class="shop-tag on">WEARING</span>'
           : owned
             ? `<button class="shop-buy owned" data-equip="${i.id}">WEAR</button>`
-            : `<button class="shop-buy" data-buy="${i.id}" ${s.wallet < i.price ? 'data-poor' : ''}>${i.price.toLocaleString()} <span class="coin-dot"></span></button>`;
+            : i.missionLevel
+              ? `<span class="shop-tag lock">🔒 MISSION ${i.missionLevel}</span>`
+              : `<button class="shop-buy" data-buy="${i.id}" ${s.wallet < i.price ? 'data-poor' : ''}>${i.price.toLocaleString()} <span class="coin-dot"></span></button>`;
         return `<div class="shop-item">${sw}<div class="shop-info"><b>${i.name}</b><small>${i.description}</small></div>${btn}</div>`;
       }).join('');
     }

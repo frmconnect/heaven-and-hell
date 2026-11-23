@@ -15,7 +15,7 @@ describe('Shop catalog', () => {
   it('has ~4 items in each category plus a free starter, all looks only', () => {
     for (const cat of ['outfit', 'wings', 'trail'] as const) {
       const items = SHOP_ITEMS.filter((i) => i.category === cat);
-      expect(items.filter((i) => i.price === 0)).toHaveLength(1);
+      expect(items.filter((i) => i.price === 0 && !i.missionLevel)).toHaveLength(1);
       expect(items.filter((i) => i.price > 0).length).toBeGreaterThanOrEqual(3);
     }
     expect(new Set(SHOP_ITEMS.map((i) => i.id)).size).toBe(SHOP_ITEMS.length);

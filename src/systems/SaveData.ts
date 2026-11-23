@@ -54,6 +54,13 @@ export interface SaveState {
   ambienceOn: number;
   vibrateOn: number; // 1 = phone buzzes on stumbles and crashes
   graphics: number; // 1 = high, 0 = low (for older phones)
+  // Daily challenges and missions (Decisions log #40)
+  chDay: number; // the day today's challenges belong to
+  chProg: number[];
+  chDone: number; // bitmask of completed challenges
+  chBonus: number; // 1 = all-three bonus paid
+  mLevel: number; // mission level (starts at 1)
+  mProg: number[];
 }
 
 export interface KeyValueStore {
@@ -72,6 +79,7 @@ export const defaultSave = (): SaveState => ({
   upFlight: 0, upSlowmo: 0, upMagnet: 0, dailyDay: 0, dailyStreak: 0, testerGift: 0,
   playerId: '', playerName: '', pendScore: 0, pendDistance: 0, pendCoins: 0, pendDuration: 0,
   sfxOn: 1, sfxVolume: 0.8, ambienceOn: 1, vibrateOn: 1, graphics: 1,
+  chDay: 0, chProg: [0, 0, 0], chDone: 0, chBonus: 0, mLevel: 1, mProg: [0, 0, 0],
 });
 
 /** Settings and identity survive a progress reset; everything else starts over. */
@@ -101,6 +109,9 @@ export class SaveData {
         d.ascendedTop = parsed.ascendedTop.filter((x: unknown) => typeof x === 'number' && Number.isFinite(x)).slice(0, 5);
       }
       if (Array.isArray(parsed.owned)) d.owned = parsed.owned.filter((x: unknown) => typeof x === 'string').slice(0, 100);
+      for (const k of ['chProg', 'mProg'] as const) {
+        if (Array.isArray(parsed[k]) && parsed[k].length === 3 && parsed[k].every((x: unknown) => typeof x === 'number' && Number.isFinite(x))) d[k] = parsed[k];
+      }
       for (const k of STRING_KEYS) if (typeof parsed[k] === 'string') d[k] = parsed[k];
       // saves from before the shop: the coins you already earned become spendable (Decisions log #28)
       if (parsed.walletReady !== 1) {

@@ -112,7 +112,7 @@ export class PlayerAvatar {
     if (kind === 'none') return;
     this.wingMat.color.set(look.primary);
     this.wingMat.emissive.set(look.glow ?? '#000000');
-    this.wingMat.emissiveIntensity = kind === 'firewings' || kind === 'crystalwings' ? 1.2 : 0.4;
+    this.wingMat.emissiveIntensity = ['firewings', 'crystalwings', 'seraphwings', 'eternitywings'].includes(kind) ? 1.2 : 0.4;
     this.wingMat.opacity = kind === 'crystalwings' ? 0.8 : 1;
     const shape = new THREE.Shape();
     if (kind === 'batwings') {

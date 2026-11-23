@@ -15,6 +15,7 @@ export interface ScreenHandlers {
   onOpenShop: () => void;
   onOpenBoard: () => void;
   onOpenSettings: () => void;
+  onOpenMissions: () => void;
 }
 
 /** What the menu needs to know about the Ascended State. */
@@ -73,7 +74,7 @@ export class Screens {
         <div class="best" data-asc-best></div>
       </div>
       <button class="big-btn" data-play>RUN</button>
-      <div class="menu-row"><button class="ghost-btn" data-shop>SHOP</button><button class="ghost-btn" data-board>LEADERBOARD</button><button class="ghost-btn" data-settings>SETTINGS</button></div>
+      <div class="menu-row"><button class="ghost-btn" data-missions>CHALLENGES <span class="badge" data-mbadge></span></button><button class="ghost-btn" data-shop>SHOP</button><button class="ghost-btn" data-board>LEADERBOARD</button><button class="ghost-btn" data-settings>SETTINGS</button></div>
       <div class="wallet"><span class="coin-dot"></span><span data-wallet>0</span></div>
       <div class="best" data-best></div>
       <div class="build">Version ${typeof __BUILD__ === 'string' ? __BUILD__ : 'dev'}</div>
@@ -122,6 +123,7 @@ export class Screens {
     bind(this.menu, '[data-shop]', h.onOpenShop);
     bind(this.menu, '[data-board]', h.onOpenBoard);
     bind(this.menu, '[data-settings]', h.onOpenSettings);
+    bind(this.menu, '[data-missions]', h.onOpenMissions);
     bind(this.over, '[data-asc-again]', h.onAscendedRun);
   }
 
@@ -143,8 +145,11 @@ export class Screens {
     for (const s of [this.menu, this.pause, this.over, this.god, this.ascended]) s.classList.remove('on');
   }
 
-  showMenu(best: number, hasCheckpoint: boolean, ascended = false, testStage?: string, asc?: AscendedMenuInfo, wallet = 0): void {
+  showMenu(best: number, hasCheckpoint: boolean, ascended = false, testStage?: string, asc?: AscendedMenuInfo, wallet = 0, challengesLeft = 0): void {
     this.hideAll();
+    const mBadge = this.q(this.menu, '[data-mbadge]');
+    mBadge.textContent = challengesLeft > 0 ? String(challengesLeft) : '';
+    mBadge.style.display = challengesLeft > 0 ? '' : 'none';
     this.q(this.menu, '[data-wallet]').textContent = wallet.toLocaleString();
     const ascBlock = this.q(this.menu, '[data-asc-block]');
     ascBlock.style.display = ascended && asc && !testStage ? '' : 'none';

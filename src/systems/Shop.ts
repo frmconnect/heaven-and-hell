@@ -18,6 +18,8 @@ export interface ShopItem {
   price: number; // 0 = free starter item
   description: string;
   look: ItemLook;
+  /** Exclusive: earned only by reaching this mission level (Decisions log #40), never sold. */
+  missionLevel?: number;
 }
 
 /** Everything in the shop (Decisions log #24, #28). Looks only — nothing here changes gameplay. */
@@ -27,18 +29,22 @@ export const SHOP_ITEMS: ShopItem[] = [
   { id: 'angel', category: 'outfit', name: 'Angel', price: 800, description: 'White robes with golden trim', look: { primary: '#ffffff', secondary: '#e8c25a', extra: '#f4d27a', glow: '#3a3020' } },
   { id: 'fallen', category: 'outfit', name: 'Fallen', price: 1500, description: 'Black robes touched by fire', look: { primary: '#1e1418', secondary: '#7a0e0a', extra: '#120a0a', glow: '#3a0400' } },
   { id: 'golden', category: 'outfit', name: 'Golden One', price: 4000, description: 'Shining armour of pure gold', look: { primary: '#ffcc40', secondary: '#b07a10', extra: '#fff0b0', glow: '#6a4a00' } },
+  { id: 'saintrobe', category: 'outfit', name: "Saint's Robe", price: 0, missionLevel: 15, description: 'Exclusive: Mission Level 15', look: { primary: '#e8f0ff', secondary: '#c8a040', extra: '#f4e2b0', glow: '#203050' } },
   // wings
   { id: 'none', category: 'wings', name: 'No wings', price: 0, description: 'Run as you are', look: { primary: 'transparent' } },
   { id: 'angelwings', category: 'wings', name: 'Angel Wings', price: 1200, description: 'Soft white feathers', look: { primary: '#ffffff', glow: '#605848' } },
   { id: 'batwings', category: 'wings', name: 'Bat Wings', price: 1500, description: 'Leathery wings from below', look: { primary: '#2a0a10', glow: '#300404' } },
   { id: 'crystalwings', category: 'wings', name: 'Crystal Wings', price: 3000, description: 'Glowing blue crystal', look: { primary: '#9fd8ff', glow: '#3a8aff' } },
   { id: 'firewings', category: 'wings', name: 'Wings of Fire', price: 4000, description: 'Blazing wings of flame', look: { primary: '#ff8a1a', glow: '#ff4a00' } },
+  { id: 'seraphwings', category: 'wings', name: 'Seraph Wings', price: 0, missionLevel: 10, description: 'Exclusive: Mission Level 10', look: { primary: '#fff6d8', glow: '#ffcf5a' } },
+  { id: 'eternitywings', category: 'wings', name: 'Wings of Eternity', price: 0, missionLevel: 20, description: 'Exclusive: Mission Level 20', look: { primary: '#c8a8ff', glow: '#7a3aff' } },
   // trails
   { id: 'none-trail', category: 'trail', name: 'No trail', price: 0, description: 'Leave no mark', look: { primary: 'transparent' } },
   { id: 'light', category: 'trail', name: 'Trail of Light', price: 600, description: 'A soft white glow', look: { primary: '#fffbe8' } },
   { id: 'embers', category: 'trail', name: 'Embers', price: 900, description: 'Sparks from the fires of Hell', look: { primary: '#ff7a1a', secondary: '#ffd04a' } },
   { id: 'stardust', category: 'trail', name: 'Stardust', price: 2000, description: 'Twinkling stars behind you', look: { primary: '#c8a8ff', secondary: '#9fe8ff' } },
   { id: 'goldtrail', category: 'trail', name: 'Golden Path', price: 3500, description: 'A river of gold', look: { primary: '#ffd257', secondary: '#fff2b0' } },
+  { id: 'halotrail', category: 'trail', name: 'Halo Trail', price: 0, missionLevel: 5, description: 'Exclusive: Mission Level 5', look: { primary: '#fff2a0', secondary: '#ffffff' } },
 ];
 
 export const itemById = (id: string): ShopItem | undefined => SHOP_ITEMS.find((i) => i.id === id);
@@ -69,20 +75,23 @@ export class Shop {
 
   owns(id: string): boolean {
     const item = itemById(id);
-    return !!item && (item.price === 0 || this.save.data.owned.includes(id));
+    if (!item) return false;
+    if (item.missionLevel) return this.save.data.owned.includes(id);
+    return item.price === 0 || this.save.data.owned.includes(id);
   }
 
   equipped(cat: ShopCategory): string {
     const d = this.save.data;
     const id = cat === 'outfit' ? d.outfit : cat === 'wings' ? d.wings : d.trail;
     // the starter item if nothing valid is equipped
-    return this.owns(id) && itemById(id)?.category === cat ? id : SHOP_ITEMS.find((i) => i.category === cat && i.price === 0)!.id;
+    return this.owns(id) && itemById(id)?.category === cat ? id : SHOP_ITEMS.find((i) => i.category === cat && i.price === 0 && !i.missionLevel)!.id;
   }
 
   buy(id: string): BuyResult {
     const item = itemById(id);
     if (!item) return 'unknown';
     if (this.owns(id)) return 'owned';
+    if (item.missionLevel) return 'unknown'; // earned, never sold
     if (this.save.data.wallet < item.price) return 'coins';
     this.save.data.wallet -= item.price;
     this.save.data.owned.push(id);
