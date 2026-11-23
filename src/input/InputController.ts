@@ -86,6 +86,9 @@ export class InputController {
   }
 
   private onKey = (e: KeyboardEvent): void => {
+    // typing in a box (e.g. a recovery code) must not steer the runner
+    const t = e.target as HTMLElement | null;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
     const map: Record<string, Action> = {
       ArrowLeft: 'left', a: 'left', A: 'left',
       ArrowRight: 'right', d: 'right', D: 'right',

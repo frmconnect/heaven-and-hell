@@ -10,3 +10,6 @@ Takes about 5 minutes on a phone. Free plan; no card needed.
    - **anon public** key (a long text starting with `eyJ…`, or `sb_publishable_…`)
 5. Send those two to Claude. They are **public** values (they're built into the game for every player), so it's fine to paste them in chat.
    **Never** send the `service_role` / secret key or the database password.
+
+## Cloud save (recovery codes) — one extra step
+Supabase → **SQL Editor** → **New query** → paste everything from `supabase/add-cloud-save.sql` → **Run**. It should say "Success". Then tell Claude, who checks it works.

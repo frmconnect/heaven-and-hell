@@ -254,3 +254,14 @@ html, body {
 .unlock-next { margin-top: 6px; padding: 12px; border-radius: 12px; border: 1px dashed rgba(255,210,87,.6); color: #fff1a8; font-size: 14px; }
 .badge { display: inline-block; margin-left: 6px; min-width: 18px; padding: 1px 6px; border-radius: 9px; background: #ff5a2a; color: #fff; font-size: 11px; font-weight: 900; }
 .shop-tag.lock { color: #c8b8ff; opacity: .9; }
+
+/* Cloud save (Decisions log #42) */
+.cloud-box { padding: 14px; border-radius: 14px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,210,87,.35); text-align: center; }
+.cloud-title { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; opacity: .75; }
+.cloud-code { margin: 6px 0 4px; font: 900 28px/1.2 ui-monospace, 'SF Mono', Menlo, Consolas, monospace; letter-spacing: .06em; color: #ffe08a; user-select: all; -webkit-user-select: all; }
+.cloud-status { font-size: 13px; opacity: .75; min-height: 16px; }
+.cloud-status.ok { color: #b8f0b8; opacity: 1; }
+.cloud-help { font-size: 13px; line-height: 1.45; opacity: .85; margin: 10px 0; }
+.cloud-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.cloud-btns .ghost-btn { flex: 1; min-width: 120px; margin: 0; }
+.cloud-input { width: 100%; box-sizing: border-box; margin: 10px 0 14px; padding: 14px; border-radius: 12px; border: 2px solid rgba(255,210,87,.6); background: rgba(0,0,0,.35); color: #fff; text-align: center; font: 900 24px ui-monospace, Menlo, Consolas, monospace; letter-spacing: .06em; }

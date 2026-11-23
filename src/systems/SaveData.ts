@@ -61,6 +61,10 @@ export interface SaveState {
   chBonus: number; // 1 = all-three bonus paid
   mLevel: number; // mission level (starts at 1)
   mProg: number[];
+  // Cloud save (Decisions log #42)
+  cloudCode: string; // recovery code ('' = not made yet)
+  cloudAt: number; // when the last backup reached the server (ms since 1970), 0 = never
+  cloudTold: number; // 1 = the player was told about their code
 }
 
 export interface KeyValueStore {
@@ -80,12 +84,36 @@ export const defaultSave = (): SaveState => ({
   playerId: '', playerName: '', pendScore: 0, pendDistance: 0, pendCoins: 0, pendDuration: 0,
   sfxOn: 1, sfxVolume: 0.8, ambienceOn: 1, vibrateOn: 1, graphics: 1,
   chDay: 0, chProg: [0, 0, 0], chDone: 0, chBonus: 0, mLevel: 1, mProg: [0, 0, 0],
+  cloudCode: '', cloudAt: 0, cloudTold: 0,
 });
 
 /** Settings and identity survive a progress reset; everything else starts over. */
-const KEEP_ON_RESET = ['sfxOn', 'sfxVolume', 'ambienceOn', 'vibrateOn', 'graphics', 'playerId', 'playerName', 'testerGift', 'walletReady'] as const;
+const KEEP_ON_RESET = ['sfxOn', 'sfxVolume', 'ambienceOn', 'vibrateOn', 'graphics', 'playerId', 'playerName', 'testerGift', 'walletReady', 'cloudCode', 'cloudAt', 'cloudTold'] as const;
 
-const STRING_KEYS = ['outfit', 'wings', 'trail', 'playerId', 'playerName'] as const;
+const STRING_KEYS = ['outfit', 'wings', 'trail', 'playerId', 'playerName', 'cloudCode'] as const;
+
+/** Read a save (from this phone or from a cloud backup), keeping only valid values. */
+export function parseSave(parsed: Record<string, any>): SaveState {
+  const d = defaultSave();
+  for (const k of Object.keys(d) as (keyof SaveState)[]) {
+    if (k === 'version' || typeof d[k] !== 'number') continue;
+    if (typeof parsed[k] === 'number' && Number.isFinite(parsed[k])) (d as unknown as Record<string, number>)[k] = parsed[k];
+  }
+  if (Array.isArray(parsed.ascendedTop)) {
+    d.ascendedTop = parsed.ascendedTop.filter((x: unknown) => typeof x === 'number' && Number.isFinite(x)).slice(0, 5);
+  }
+  if (Array.isArray(parsed.owned)) d.owned = parsed.owned.filter((x: unknown) => typeof x === 'string').slice(0, 100);
+  for (const k of ['chProg', 'mProg'] as const) {
+    if (Array.isArray(parsed[k]) && parsed[k].length === 3 && parsed[k].every((x: unknown) => typeof x === 'number' && Number.isFinite(x))) d[k] = parsed[k];
+  }
+  for (const k of STRING_KEYS) if (typeof parsed[k] === 'string') d[k] = parsed[k];
+  // saves from before the shop: the coins you already earned become spendable (Decisions log #28)
+  if (parsed.walletReady !== 1) {
+    d.wallet = d.totalCoins;
+    d.walletReady = 1;
+  }
+  return d;
+}
 
 /** Saves progress on the device. Never throws: if storage is blocked, the game keeps working without saving. */
 export class SaveData {
@@ -95,40 +123,52 @@ export class SaveData {
     this.data = this.load();
   }
 
+  /** Called after every save (the cloud backup listens here). */
+  onSave: (() => void) | null = null;
+
   private load(): SaveState {
     try {
       const raw = this.store?.getItem(KEY);
       if (!raw) return defaultSave();
-      const parsed = JSON.parse(raw);
-      const d = defaultSave();
-      for (const k of Object.keys(d) as (keyof SaveState)[]) {
-        if (k === 'version' || typeof d[k] !== 'number') continue;
-        if (typeof parsed[k] === 'number' && Number.isFinite(parsed[k])) (d as unknown as Record<string, number>)[k] = parsed[k];
-      }
-      if (Array.isArray(parsed.ascendedTop)) {
-        d.ascendedTop = parsed.ascendedTop.filter((x: unknown) => typeof x === 'number' && Number.isFinite(x)).slice(0, 5);
-      }
-      if (Array.isArray(parsed.owned)) d.owned = parsed.owned.filter((x: unknown) => typeof x === 'string').slice(0, 100);
-      for (const k of ['chProg', 'mProg'] as const) {
-        if (Array.isArray(parsed[k]) && parsed[k].length === 3 && parsed[k].every((x: unknown) => typeof x === 'number' && Number.isFinite(x))) d[k] = parsed[k];
-      }
-      for (const k of STRING_KEYS) if (typeof parsed[k] === 'string') d[k] = parsed[k];
-      // saves from before the shop: the coins you already earned become spendable (Decisions log #28)
-      if (parsed.walletReady !== 1) {
-        d.wallet = d.totalCoins;
-        d.walletReady = 1;
-      }
-      return d;
+      return parseSave(JSON.parse(raw));
     } catch {
       return defaultSave();
     }
   }
 
-  save(): void {
+  /**
+   * Replace everything with a backup from the cloud (Decisions log #42).
+   * The recovery code stays the one that was typed. Returns false if the backup is unusable.
+   */
+  restoreFrom(backup: unknown, code: string): boolean {
+    if (!backup || typeof backup !== 'object') return false;
+    const d = parseSave(backup as Record<string, unknown>);
+    d.cloudCode = code;
+    d.cloudAt = Date.now();
+    d.cloudTold = 1;
+    this.data = d;
+    this.save();
+    return true;
+  }
+
+  /** What goes to the cloud: everything except this phone's backup bookkeeping. */
+  backupData(): Record<string, unknown> {
+    const { cloudCode: _c, cloudAt: _a, cloudTold: _t, ...rest } = this.data;
+    return rest;
+  }
+
+  /** Save on this phone. `quiet` = don't trigger a cloud backup (used for the backup's own bookkeeping). */
+  save(quiet = false): void {
     try {
       this.store?.setItem(KEY, JSON.stringify(this.data));
     } catch {
       /* storage full or blocked: ignore */
+    }
+    if (quiet) return;
+    try {
+      this.onSave?.();
+    } catch {
+      /* never let the backup break saving */
     }
   }
 

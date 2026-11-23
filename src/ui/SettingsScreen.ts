@@ -1,11 +1,14 @@
 import type { AudioManager } from '../audio/AudioManager';
 import { SOUNDS, type SoundName } from '../audio/sounds';
 import type { SaveData } from '../systems/SaveData';
+import { formatCode, normalizeCode } from '../systems/CloudSave';
 
 export interface SettingsActions {
   onGraphics: () => void; // graphics quality changed
   onDeleteOnline: () => Promise<boolean>; // delete online leaderboard data
   onResetProgress: () => void; // start the game over
+  onBackupNow: () => Promise<boolean>; // cloud save (Decisions log #42)
+  onRestore: (code: string) => Promise<'ok' | 'badcode' | 'notfound' | 'offline'>;
 }
 
 /**
@@ -14,7 +17,7 @@ export interface SettingsActions {
  */
 export class SettingsScreen {
   private el: HTMLDivElement;
-  private view: 'main' | 'howto' | 'credits' = 'main';
+  private view: 'main' | 'howto' | 'credits' | 'restore' = 'main';
 
   constructor(root: HTMLElement, private save: SaveData, private audio: AudioManager, private onClose: () => void, private actions: SettingsActions) {
     this.el = document.createElement('div');
@@ -27,6 +30,26 @@ export class SettingsScreen {
     this.view = view;
     this.render();
     this.el.classList.add('on');
+    if (!this.save.data.cloudTold) {
+      this.save.data.cloudTold = 1;
+      this.save.save(true);
+    }
+  }
+
+  /** The backup finished: update "Backed up …" if Settings is open. */
+  refreshBackup(): void {
+    const el = this.el.querySelector('[data-cloud-status]');
+    if (!el) return;
+    el.textContent = this.backupStatus();
+    el.classList.toggle('ok', !!this.save.data.cloudAt);
+  }
+
+  private backupStatus(): string {
+    const at = this.save.data.cloudAt;
+    if (!at) return 'Not backed up yet — it happens automatically when you’re online.';
+    const mins = Math.floor((Date.now() - at) / 60000);
+    const ago = mins < 1 ? 'just now' : mins < 60 ? `${mins} min ago` : mins < 1440 ? `${Math.floor(mins / 60)} h ago` : `${Math.floor(mins / 1440)} days ago`;
+    return `✓ Backed up ${ago}`;
   }
 
   close(): void {
@@ -40,6 +63,7 @@ export class SettingsScreen {
   private render(): void {
     if (this.view === 'howto') return this.renderHowTo();
     if (this.view === 'credits') return this.renderCredits();
+    if (this.view === 'restore') return this.renderRestore();
     const d = this.save.data;
     const toggle = (id: string, on: boolean, onWord = 'ON', offWord = 'OFF') => `<button class="toggle ${on ? 'on' : ''}" data-toggle="${id}" aria-pressed="${on}">${on ? onWord : offWord}</button>`;
     const previews = (Object.keys(SOUNDS) as SoundName[]).map((k) => `<button class="preview" data-sound="${k}">▶ ${SOUNDS[k].label}</button>`).join('');
@@ -59,8 +83,17 @@ export class SettingsScreen {
           <div class="set-label">About</div>
           <a class="set-row link" href="privacy.html" target="_blank" rel="noopener"><span>Privacy policy</span><b>›</b></a>
           <button class="set-row link" data-credits><span>Credits</span><b>›</b></button>
+          <div class="set-label">Save &amp; restore</div>
+          <div class="cloud-box">
+            <div class="cloud-title">Your recovery code</div>
+            <div class="cloud-code" data-code>${formatCode(d.cloudCode)}</div>
+            <div class="cloud-status ${d.cloudAt ? 'ok' : ''}" data-cloud-status>${this.backupStatus()}</div>
+            <p class="cloud-help">Lost your phone or deleted the game? Type this code on any phone to get all your progress back. <b>Take a screenshot of it</b> or write it down. Keep it secret — anyone with the code can load your progress.</p>
+            <div class="cloud-btns"><button class="ghost-btn" data-copy>COPY CODE</button><button class="ghost-btn" data-backup>BACK UP NOW</button></div>
+          </div>
+          <button class="set-row link" data-restore><span>Restore from a code<small>Bring back progress from another phone</small></span><b>›</b></button>
           <div class="set-label">Your data</div>
-          <button class="set-row link danger" data-delete><span>Delete my online data<small>Removes your leaderboard scores and name</small></span><b>›</b></button>
+          <button class="set-row link danger" data-delete><span>Delete my online data<small>Removes your leaderboard scores, name and online backup</small></span><b>›</b></button>
           <button class="set-row link danger" data-reset><span>Reset progress<small>Start the game over from the beginning</small></span><b>›</b></button>
           <div class="set-label">Preview sounds</div>
           <div class="preview-grid">${previews}</div>
@@ -97,8 +130,23 @@ export class SettingsScreen {
     );
     this.el.querySelector('[data-howto]')?.addEventListener('click', () => { this.view = 'howto'; this.render(); });
     this.el.querySelector('[data-credits]')?.addEventListener('click', () => { this.view = 'credits'; this.render(); });
+    this.el.querySelector('[data-copy]')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(formatCode(d.cloudCode));
+        this.msg('Code copied. Paste it somewhere safe (notes, an email to yourself).');
+      } catch {
+        this.msg('Couldn’t copy — take a screenshot of the code instead.');
+      }
+    });
+    this.el.querySelector('[data-backup]')?.addEventListener('click', async () => {
+      this.msg('Backing up…');
+      const ok = await this.actions.onBackupNow();
+      this.refreshBackup();
+      this.msg(ok ? 'Backed up!' : 'Couldn’t reach the server. Check your internet and try again.');
+    });
+    this.el.querySelector('[data-restore]')?.addEventListener('click', () => { this.view = 'restore'; this.render(); });
     this.el.querySelector('[data-delete]')?.addEventListener('click', () =>
-      this.confirm('Delete your online data?', 'Your scores and name will be removed from the online leaderboard. Your progress on this phone stays.', 'DELETE', async () => {
+      this.confirm('Delete your online data?', 'Your scores, name and online backup will be removed from our server, and you get a new recovery code. Your progress on this phone stays.', 'DELETE', async () => {
         this.msg('Deleting…');
         const ok = await this.actions.onDeleteOnline();
         this.msg(ok ? 'Done — your online data is deleted.' : 'Couldn’t reach the leaderboard. Check your internet and try again.');
@@ -130,6 +178,44 @@ export class SettingsScreen {
     c.hidden = false;
     c.querySelector('[data-no]')?.addEventListener('click', () => { c.hidden = true; });
     c.querySelector('[data-yes]')?.addEventListener('click', () => { c.hidden = true; onYes(); });
+  }
+
+  private renderRestore(): void {
+    this.el.innerHTML = `
+      <div class="shop-panel settings-panel">
+        ${this.head('RESTORE PROGRESS', true)}
+        <div class="set-scroll howto">
+          <p>Type the recovery code from your old phone (Settings → Save &amp; restore). It looks like <b>K7QM-3XPA-WN9R</b>.</p>
+          <input class="cloud-input" data-input maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="XXXX-XXXX-XXXX" />
+          <button class="big-btn" data-go>RESTORE</button>
+          <p class="cloud-help">This replaces the progress on this phone with the progress saved under that code.</p>
+        </div>
+        <div class="set-msg" data-msg></div>
+      </div>
+      <div class="confirm" data-confirm hidden></div>`;
+    this.bindCommon();
+    const input = this.el.querySelector('[data-input]') as HTMLInputElement;
+    input.addEventListener('input', () => {
+      const raw = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 12);
+      input.value = raw.length > 8 ? formatCode(raw) : raw.length > 4 ? `${raw.slice(0, 4)}-${raw.slice(4)}` : raw;
+    });
+    this.el.querySelector('[data-go]')?.addEventListener('click', () => {
+      const code = normalizeCode(input.value);
+      if (!code) return this.msg('That isn’t a full code. It has 12 letters and numbers, like K7QM-3XPA-WN9R.');
+      if (code === normalizeCode(this.save.data.cloudCode)) return this.msg('That’s this phone’s own code — your progress is already here.');
+      this.confirm('Replace your progress?', 'Everything on this phone will be replaced by the progress saved under this code.', 'RESTORE', async () => {
+        this.msg('Restoring…');
+        const r = await this.actions.onRestore(code);
+        if (r === 'ok') {
+          this.msg('');
+          this.view = 'main';
+          this.render();
+          this.msg('Welcome back! Your progress is restored.');
+        } else {
+          this.msg(r === 'offline' ? 'Couldn’t reach the server. Check your internet and try again.' : r === 'notfound' ? 'No progress found for that code. Check each letter and try again.' : 'That code doesn’t look right.');
+        }
+      });
+    });
   }
 
   private renderHowTo(): void {

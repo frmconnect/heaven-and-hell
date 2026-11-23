@@ -24,6 +24,7 @@ import { judge } from '../systems/SinGrace';
 import { AudioManager } from '../audio/AudioManager';
 import { HUD } from '../ui/HUD';
 import { SettingsScreen } from '../ui/SettingsScreen';
+import { CloudBackup, CloudSaveClient, newRecoveryCode, normalizeCode } from '../systems/CloudSave';
 import { Screens } from '../ui/Screens';
 import { CoinRenderer } from '../world/CoinRenderer';
 import { Crumble } from '../world/Crumble';
@@ -70,6 +71,8 @@ export class Game {
   private boardScreen: LeaderboardScreen;
   private audio: AudioManager;
   private settingsScreen: SettingsScreen;
+  private cloud = new CloudSaveClient(ONLINE);
+  private backup!: CloudBackup;
   private coinStreak = 0;
   private lastCoinAt = 0;
   private wasAirborne = false;
@@ -84,7 +87,7 @@ export class Game {
   private runCount = 0;
   private gateFlashed = false;
 
-  constructor(private mount: HTMLElement, uiRoot: HTMLElement) {
+  constructor(private mount: HTMLElement, private uiRoot: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, CONFIG.maxPixelRatio));
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -152,6 +155,23 @@ export class Game {
         this.missionsScreen.open();
       },
     });
+    // cloud save: automatic online backup under a recovery code (Decisions log #42)
+    if (!this.save.data.cloudCode) {
+      this.save.data.cloudCode = newRecoveryCode();
+      this.save.save(true);
+    }
+    this.backup = new CloudBackup(this.cloud, () => this.save.data.cloudCode, () => this.save.backupData(), (ok) => {
+      if (!ok) return;
+      this.save.data.cloudAt = Date.now();
+      this.save.save(true);
+      this.settingsScreen?.refreshBackup();
+    });
+    this.save.onSave = () => this.backup.schedule();
+    if (this.save.data.runs > 0 && !this.save.data.cloudAt) {
+      // first time with this feature: back up what's already on the phone
+      this.backup.dirty = true;
+      void this.backup.flush();
+    }
     // anonymous player id for the online leaderboard (Decisions log #32)
     if (!this.save.data.playerId) {
       this.save.data.playerId = newPlayerId();
@@ -201,11 +221,30 @@ export class Game {
           this.applyGraphics();
           this.analytics.event(`settings:graphics:${this.save.data.graphics ? 'high' : 'low'}`);
         },
-        // "Delete my data": remove scores from the server, then become a new anonymous player
+        // "Delete my data": remove scores and the cloud backup, then become a new anonymous player with a new code
         onDeleteOnline: async () => {
-          const ok = await this.lb.deleteMine(this.save.data.playerId);
-          if (ok) this.save.newIdentity(newPlayerId());
+          const ok = (await this.lb.deleteMine(this.save.data.playerId)) && (await this.cloud.remove(this.save.data.cloudCode));
+          if (ok) {
+            this.save.data.cloudCode = newRecoveryCode();
+            this.save.data.cloudAt = 0;
+            this.save.newIdentity(newPlayerId()); // saves; the next change backs up under the new code
+          }
           return ok;
+        },
+        onBackupNow: async () => {
+          this.backup.dirty = true;
+          await this.backup.flush();
+          return this.save.data.cloudAt > Date.now() - 10000;
+        },
+        onRestore: async (code) => {
+          const r = await this.cloud.restore(code);
+          if (!r.ok) return r.error;
+          if (!this.save.restoreFrom(r.data, normalizeCode(code))) return 'notfound';
+          this.applyLooks();
+          this.applyGraphics();
+          this.audio.setSettings({ sfxOn: !!this.save.data.sfxOn, sfxVolume: this.save.data.sfxVolume, ambienceOn: !!this.save.data.ambienceOn });
+          this.analytics.event('cloud:restored');
+          return 'ok';
         },
         onResetProgress: () => {
           this.save.resetProgress();
@@ -217,6 +256,7 @@ export class Game {
     this.applyLooks();
     // desktop: E or Enter uses the ability
     window.addEventListener('keydown', (e) => {
+      if ((e.target as HTMLElement | null)?.tagName === 'INPUT') return;
       if (e.key === 'e' || e.key === 'E' || e.key === 'Enter') this.useAbility();
     });
 
@@ -243,6 +283,7 @@ export class Game {
     window.addEventListener('resize', () => this.resize());
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
+        void this.backup.flush(true); // the phone may close the game: back up now
         this.pause();
         this.audio.setPaused(true);
         this.analytics.pause();
@@ -279,6 +320,17 @@ export class Game {
       selected: this.selectedAbility(),
       unlocked: Object.fromEntries(ABILITY_ORDER.map((id) => [id, isUnlocked(id, this.save.data.ascendedBestDistance)])) as Record<AbilityId, boolean>,
     }, this.save.data.wallet, 3 - this.missions.dailyDoneCount());
+    // once: tell the player their progress is backed up and where the code is (Decisions log #42)
+    const d = this.save.data;
+    if (d.cloudAt && !d.cloudTold && d.runs >= 3) {
+      d.cloudTold = 1;
+      this.save.save(true);
+      const banner = document.createElement('div');
+      banner.className = 'gift-banner';
+      banner.textContent = 'Your progress is backed up online. Your recovery code is in SETTINGS — take a screenshot of it!';
+      this.uiRoot.appendChild(banner);
+      setTimeout(() => banner.remove(), 6000);
+    }
   }
 
   /**
