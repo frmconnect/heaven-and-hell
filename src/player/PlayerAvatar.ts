@@ -1,11 +1,20 @@
 import * as THREE from 'three';
 import { laneX } from '../core/config';
 import type { PlayerMotion } from './PlayerMotion';
+import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { HumanFigure, type Palette } from './CharacterModel';
 
 /** A simple low-poly runner: a lost soul in a pale tunic. Animates running, jumping, sliding and stumbling. */
 export class PlayerAvatar {
   readonly root = new THREE.Group();
   private body = new THREE.Group();
+  /** The simple built-in runner (used until / unless the animated model loads). */
+  private simple = new THREE.Group();
+  /** The animated runner (Quaternius Animated Man). */
+  private figure: HumanFigure | null = null;
+  private palette: Palette = { skin: '#e8b796', eyes: '#292929', hair: '#3a2216', shirt: '#efe6d2', pants: '#4a3226' };
+  private golden = false;
+  private wasGrounded = true;
   private armL: THREE.Group;
   private armR: THREE.Group;
   private legL: THREE.Group;
@@ -45,7 +54,8 @@ export class PlayerAvatar {
     const hairM = new THREE.Mesh(new THREE.IcosahedronGeometry(0.21, 1), hair);
     hairM.position.set(0, 1.78, 0.04);
     hairM.scale.set(1, 0.7, 1);
-    this.body.add(torso, belt, head, hairM);
+    this.simple.add(torso, belt, head, hairM);
+    this.body.add(this.simple);
 
     const limb = (w: number, h: number, mat: THREE.Material, x: number, y: number) => {
       const pivot = new THREE.Group();
@@ -53,7 +63,7 @@ export class PlayerAvatar {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, w), mat);
       m.position.y = -h / 2;
       pivot.add(m);
-      this.body.add(pivot);
+      this.simple.add(pivot);
       return pivot;
     };
     this.armL = limb(0.14, 0.62, skin, -0.36, 1.45);
@@ -86,6 +96,27 @@ export class PlayerAvatar {
     scene.add(this.root);
   }
 
+  /** Swap the simple shapes for the animated character (called once the model has loaded). */
+  useFigure(gltf: GLTF): void {
+    this.figure = new HumanFigure(gltf, 1.8, this.palette);
+    this.applyFigureLook();
+    this.simple.visible = false;
+    this.body.add(this.figure.root);
+    this.figure.play('run', 0);
+  }
+
+  get hasFigure(): boolean {
+    return !!this.figure;
+  }
+
+  private applyFigureLook(): void {
+    if (!this.figure) return;
+    this.figure.setPalette(this.palette);
+    const m = this.figure.material;
+    m.metalness = this.golden ? 0.6 : 0;
+    m.roughness = this.golden ? 0.35 : 0.85;
+  }
+
   reset(): void {
     this.fallY = 0;
     this.flash = 0;
@@ -102,6 +133,10 @@ export class PlayerAvatar {
     this.darkMat.emissive.set(look.glow ?? '#000000');
     this.hairMat.color.set(look.extra ?? '#3a2216');
     this.baseEmissive.set(look.glow ?? '#000000');
+    // animated runner: shirt = main colour, trousers = second colour, hair = third
+    this.palette = { skin: '#e8b796', eyes: '#292929', hair: look.extra ?? '#3a2216', shirt: look.primary, pants: look.secondary ?? '#4a3226' };
+    this.golden = look.primary === '#ffcc40';
+    this.applyFigureLook();
   }
 
   /** Wings (shop cosmetic): angel / bat / crystal / fire, or none. */
@@ -161,11 +196,17 @@ export class PlayerAvatar {
     }
     if (ended) {
       this.body.rotation.x = Math.max(this.body.rotation.x - dt * 6, -0.5);
+      this.figure?.setSpeed(0);
+      this.figure?.update(dt);
       return;
     }
 
     this.phase += dt * speed * 0.9;
     const s = Math.sin(this.phase);
+    if (this.figure) {
+      this.updateFigure(dt, m, speed);
+      return;
+    }
     if (this.fly > 0.3) {
       // flying: arms spread wide, leaning forward like soaring
       this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, 0.7, Math.min(1, dt * 8));
@@ -204,5 +245,42 @@ export class PlayerAvatar {
     const flashing = this.flash > 0 && Math.floor(this.flash * 20) % 2 === 0;
     this.clothMat.emissive.copy(flashing ? this.flashColor : this.baseEmissive);
     this.clothMat.emissiveIntensity = flashing ? 0.9 : 0.5;
+  }
+
+  /** The animated runner: run / jump clips, plus leaning for slides and flight. */
+  private updateFigure(dt: number, m: PlayerMotion, speed: number): void {
+    const f = this.figure!;
+    const k = Math.min(1, dt * 15);
+    if (this.fly > 0.3) {
+      // flying: soaring forward, legs trailing
+      this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, 0.9, Math.min(1, dt * 8));
+      if (f.playing !== 'jump') f.play('jump', 0.15, true, 0.45);
+      f.setSpeed(0);
+      this.halo.visible = true;
+    } else if (m.sliding) {
+      // slide: lean far back, legs still running slowly
+      this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, -1.2, Math.min(1, dt * 20));
+      this.body.position.y = THREE.MathUtils.lerp(this.body.position.y, 0.3, Math.min(1, dt * 20));
+      f.play('run', 0.1);
+      f.setSpeed(0.4);
+    } else {
+      this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, 0, k);
+      this.body.position.y = THREE.MathUtils.lerp(this.body.position.y, 0, k);
+      if (!m.grounded) {
+        // take off: start the jump clip after its crouch, hold the tuck in the air
+        if (this.wasGrounded || f.playing !== 'jump') f.play('jump', 0.08, true, 0.3);
+        f.setSpeed(1.6);
+      } else {
+        f.play('run', 0.1);
+        // one stride of the clip (0.63 s) matches the old stride length
+        f.setSpeed(Math.max(0.6, speed * 0.09));
+      }
+    }
+    this.wasGrounded = m.grounded;
+    f.update(dt);
+    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
+    const flashing = this.flash > 0 && Math.floor(this.flash * 20) % 2 === 0;
+    f.material.emissive.copy(flashing ? this.flashColor : this.baseEmissive);
+    f.material.emissiveIntensity = flashing ? 0.9 : 0.5;
   }
 }

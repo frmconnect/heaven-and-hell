@@ -3,6 +3,7 @@ import { CONFIG } from './config';
 import { GameState, GameStateManager } from './GameStateManager';
 import { RunSession, type RunStart } from './RunSession';
 import { DevilAvatar } from '../enemies/DevilAvatar';
+import { loadHuman } from '../player/CharacterModel';
 import { ShadowAvatar } from '../enemies/ShadowAvatar';
 import { InputController } from '../input/InputController';
 import { PlayerAvatar } from '../player/PlayerAvatar';
@@ -100,6 +101,17 @@ export class Game {
     this.pickups = new PickupRenderer(this.scene);
     this.player = new PlayerAvatar(this.scene);
     this.devil = new DevilAvatar(this.scene);
+    // animated characters load in the background; until then (or if it fails) the simple shapes are used
+    void loadHuman().then((g) => {
+      if (!g) return;
+      try {
+        this.player.useFigure(g);
+        this.devil.useFigure(g);
+        this.applyLooks();
+      } catch (e) {
+        console.warn('Character setup failed; keeping simple shapes.', e);
+      }
+    });
     this.shadow = new ShadowAvatar(this.scene);
     this.crumble = new Crumble(this.scene);
     this.trail = new TrailRenderer(this.scene);

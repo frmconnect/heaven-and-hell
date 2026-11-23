@@ -252,6 +252,8 @@ export class SettingsScreen {
           <p>finalfreedommobilegame@gmail.com</p>
           <h3>Development</h3>
           <p>Built with Claude (Anthropic). 3D graphics with three.js. Sound effects synthesized for this game.</p>
+          <h3>3D characters</h3>
+          <p>Runner and Devil based on "Animated Man" by Quaternius (CC0).</p>
           <h3>Thank you</h3>
           <p>To every tester and every player. Run free.</p>
         </div>

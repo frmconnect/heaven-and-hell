@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { HumanFigure } from '../player/CharacterModel';
 
 /**
  * The Devil: a huge red horned figure with glowing eyes and bat wings, chasing behind the player.
@@ -15,6 +17,17 @@ export class DevilAvatar {
   private time = 0;
   private x = 0;
   private sinkY = 0;
+  /** The simple built-in body (until / unless the animated model loads). */
+  private simple = new THREE.Group();
+  private figure: HumanFigure | null = null;
+  /** Horns and eyes follow the animated head; wings follow the upper back. */
+  private headGear = new THREE.Group();
+  private wingMount = new THREE.Group();
+  private eyeLeft!: THREE.Mesh;
+  private eyeRight!: THREE.Mesh;
+  private hornLeft!: THREE.Mesh;
+  private hornRight!: THREE.Mesh;
+  private v = new THREE.Vector3();
 
   constructor(scene: THREE.Scene) {
     const red = new THREE.MeshStandardMaterial({ color: '#a3140c', roughness: 0.6, flatShading: true, emissive: '#400400', emissiveIntensity: 0.6 });
@@ -82,9 +95,43 @@ export class DevilAvatar {
     this.aura = new THREE.PointLight('#ff2a00', 25, 10, 1.5);
     this.aura.position.set(0, 3, -1);
 
-    this.root.add(body, head, jaw, hornL, hornR, eyeL, eyeR, this.wingL, this.wingR, this.armL, this.armR, legL, legR, this.aura);
+    this.simple.add(body, head, jaw, hornL, hornR, eyeL, eyeR, this.armL, this.armR, legL, legR);
+    this.root.add(this.simple, this.wingMount, this.headGear, this.aura);
+    this.wingMount.add(this.wingL, this.wingR);
+    this.eyeLeft = eyeL;
+    this.eyeRight = eyeR;
+    this.hornLeft = hornL;
+    this.hornRight = hornR;
     this.root.scale.setScalar(0.85);
     scene.add(this.root);
+  }
+
+  /** Swap the simple body for the animated one: a huge red demon built on the shared character. */
+  useFigure(gltf: GLTF): void {
+    const f = new HumanFigure(gltf, 3.9, { skin: '#b3180e', eyes: '#ffe23a', hair: '#2a0604', shirt: '#8e120a', pants: '#2a0604' });
+    f.material.emissive.set('#3a0400');
+    f.material.emissiveIntensity = 0.6;
+    f.material.roughness = 0.6;
+    this.figure = f;
+    this.simple.visible = false;
+    this.root.add(f.root);
+    // horns and glowing eyes ride on the head
+    const hornL = this.hornLeft.clone();
+    const hornR = this.hornRight.clone();
+    hornL.position.set(-0.24, 0.42, 0);
+    hornR.position.set(0.24, 0.42, 0);
+    hornL.scale.setScalar(0.8);
+    hornR.scale.setScalar(0.8);
+    const eyeL = this.eyeLeft.clone();
+    const eyeR = this.eyeRight.clone();
+    eyeL.position.set(-0.12, 0.18, -0.3);
+    eyeR.position.set(0.12, 0.18, -0.3);
+    eyeL.scale.set(0.9, 0.45, 0.6);
+    eyeR.scale.set(0.9, 0.45, 0.6);
+    this.headGear.add(hornL, hornR, eyeL, eyeR);
+    this.wingL.position.set(-0.15, 0, 0.25);
+    this.wingR.position.set(0.15, 0, 0.25);
+    f.play('run', 0);
   }
 
   /** gap = metres behind the player. groundAt(dz) = ground height dz metres behind the player (stairs). */
@@ -109,6 +156,17 @@ export class DevilAvatar {
     this.armL.rotation.x = reach;
     this.armR.rotation.x = caught ? -1.8 : -0.9 + Math.sin(this.time * 6) * 0.3;
     this.eyes.color.setHSL(0.14, 1, 0.55 + Math.sin(this.time * 10) * 0.1);
+    if (this.figure) {
+      const f = this.figure;
+      if (caught) f.play('lunge', 0.1, true, 0.2);
+      else f.play('run', 0.2);
+      f.setSpeed(caught ? 1.2 : 1.3);
+      f.update(dt);
+      this.root.updateMatrixWorld(true);
+      if (f.bonePosition('Head', this.root, this.v)) this.headGear.position.copy(this.v);
+      if (f.bonePosition('Spine2', this.root, this.v)) this.wingMount.position.copy(this.v);
+      this.root.position.y = Math.abs(Math.sin(this.time * 6)) * 0.08 - 0.2 - this.sinkY + groundAt(this.root.position.z);
+    }
     this.aura.intensity = 20 + Math.sin(this.time * 8) * 6;
   }
 }
