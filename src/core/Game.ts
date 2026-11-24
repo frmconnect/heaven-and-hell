@@ -3,7 +3,7 @@ import { CONFIG } from './config';
 import { GameState, GameStateManager } from './GameStateManager';
 import { RunSession, type RunStart } from './RunSession';
 import { DevilAvatar } from '../enemies/DevilAvatar';
-import { loadHuman } from '../player/CharacterModel';
+import { loadHuman, loadRunner, RUNNERS, type RunnerGender } from '../player/CharacterModel';
 import { ShadowAvatar } from '../enemies/ShadowAvatar';
 import { InputController } from '../input/InputController';
 import { PlayerAvatar } from '../player/PlayerAvatar';
@@ -105,13 +105,14 @@ export class Game {
     void loadHuman().then((g) => {
       if (!g) return;
       try {
-        this.player.useFigure(g);
         this.devil.useFigure(g);
+        this.player.useFigure(g); // stand-in until the realistic runner arrives (or if it can't load)
         this.applyLooks();
       } catch (e) {
         console.warn('Character setup failed; keeping simple shapes.', e);
       }
     });
+    this.loadChosenRunner();
     this.shadow = new ShadowAvatar(this.scene);
     this.crumble = new Crumble(this.scene);
     this.trail = new TrailRenderer(this.scene);
@@ -243,6 +244,7 @@ export class Game {
           }
           return ok;
         },
+        onRunner: () => this.loadChosenRunner(),
         onBackupNow: async () => {
           this.backup.dirty = true;
           await this.backup.flush();
@@ -450,6 +452,19 @@ export class Game {
       if (!sink) return;
       this.analytics.setSink(sink);
       this.analytics.playerType(this.save.data.ascended > 0);
+    });
+  }
+
+  /** Load the realistic runner the player chose (Maria or Ely, Decisions log #43). */
+  private loadChosenRunner(): void {
+    const gender = (this.save.data.runner in RUNNERS ? this.save.data.runner : 'female') as RunnerGender;
+    void loadRunner(RUNNERS[gender].id).then((c) => {
+      if (!c || this.save.data.runner !== gender) return; // changed again while loading
+      try {
+        this.player.useRealistic(c);
+      } catch (e) {
+        console.warn('Runner setup failed; keeping the simple runner.', e);
+      }
     });
   }
 

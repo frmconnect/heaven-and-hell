@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { laneX } from '../core/config';
 import type { PlayerMotion } from './PlayerMotion';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { HumanFigure, type Palette } from './CharacterModel';
+import { HumanFigure, type Palette, type TexturedCharacter } from './CharacterModel';
 
 /** A simple low-poly runner: a lost soul in a pale tunic. Animates running, jumping, sliding and stumbling. */
 export class PlayerAvatar {
@@ -15,6 +15,10 @@ export class PlayerAvatar {
   private palette: Palette = { skin: '#e8b796', eyes: '#292929', hair: '#3a2216', shirt: '#efe6d2', pants: '#4a3226' };
   private golden = false;
   private wasGrounded = true;
+  private wasSliding = false;
+  /** Realistic Mixamo runner (Decisions log #43): has its own slide, stumble and flying animations. */
+  private realistic = false;
+  private stumbleTime = 0;
   private armL: THREE.Group;
   private armR: THREE.Group;
   private legL: THREE.Group;
@@ -98,11 +102,31 @@ export class PlayerAvatar {
 
   /** Swap the simple shapes for the animated character (called once the model has loaded). */
   useFigure(gltf: GLTF): void {
-    this.figure = new HumanFigure(gltf, 1.8, this.palette);
+    if (this.realistic) return; // a realistic runner is already in
+    this.setFigure(new HumanFigure(gltf, 1.8, this.palette), false);
     this.applyFigureLook();
+  }
+
+  /** Use a realistic runner (Maria or Ely). Replaces whatever runner is shown. */
+  useRealistic(c: TexturedCharacter): void {
+    this.setFigure(new HumanFigure(c.gltf, 1.8, c.materials), true);
+  }
+
+  /** Soft light that follows the runner, so dark armour still stands out in dark worlds. */
+  private fill: THREE.PointLight | null = null;
+
+  private setFigure(f: HumanFigure, realistic: boolean): void {
+    if (this.figure) this.body.remove(this.figure.root);
+    if (realistic && !this.fill) {
+      this.fill = new THREE.PointLight('#fff1dc', 7, 7, 1.6);
+      this.fill.position.set(0.6, 2.2, 2.4); // above and behind, towards the camera
+      this.root.add(this.fill);
+    }
+    this.figure = f;
+    this.realistic = realistic;
     this.simple.visible = false;
-    this.body.add(this.figure.root);
-    this.figure.play('run', 0);
+    this.body.add(f.root);
+    f.play('run', 0);
   }
 
   get hasFigure(): boolean {
@@ -110,7 +134,7 @@ export class PlayerAvatar {
   }
 
   private applyFigureLook(): void {
-    if (!this.figure) return;
+    if (!this.figure || this.realistic) return;
     this.figure.setPalette(this.palette);
     const m = this.figure.material;
     m.metalness = this.golden ? 0.6 : 0;
@@ -170,6 +194,11 @@ export class PlayerAvatar {
 
   stumble(): void {
     this.flash = 0.5;
+    if (this.realistic && this.figure) {
+      this.figure.play('stumble', 0.08, true, 0.25);
+      this.figure.setSpeed(1.4);
+      this.stumbleTime = 0.45;
+    }
   }
 
   /** shield = halo on; safe = shield just broke (flicker). */
@@ -251,6 +280,10 @@ export class PlayerAvatar {
   private updateFigure(dt: number, m: PlayerMotion, speed: number): void {
     const f = this.figure!;
     const k = Math.min(1, dt * 15);
+    if (this.realistic) {
+      this.updateRealistic(dt, m, speed, f);
+      return;
+    }
     if (this.fly > 0.3) {
       // flying: soaring forward, legs trailing
       this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, 0.9, Math.min(1, dt * 8));
@@ -282,5 +315,41 @@ export class PlayerAvatar {
     const flashing = this.flash > 0 && Math.floor(this.flash * 20) % 2 === 0;
     f.material.emissive.copy(flashing ? this.flashColor : this.baseEmissive);
     f.material.emissiveIntensity = flashing ? 0.9 : 0.5;
+  }
+
+  /** Realistic runner: every move has its own animation (timed to the game's jump and slide). */
+  private updateRealistic(dt: number, m: PlayerMotion, speed: number, f: HumanFigure): void {
+    this.body.rotation.x = THREE.MathUtils.lerp(this.body.rotation.x, this.fly > 0.3 ? 0.2 : 0, Math.min(1, dt * 10));
+    this.body.position.y = 0;
+    this.stumbleTime = Math.max(0, this.stumbleTime - dt);
+    if (this.fly > 0.3) {
+      f.play('fly', 0.2);
+      f.setSpeed(1);
+      this.halo.visible = true;
+    } else if (m.sliding) {
+      // the slide clip drops low by 0.3 s and stays down until ~0.9 s; the game's slide lasts 0.75 s
+      if (!this.wasSliding) f.play('slide', 0.08, true, 0.15);
+      f.setSpeed(1.4);
+    } else if (!m.grounded) {
+      // the jump clip is airborne from 0.6 s to 1.3 s; the game's jump lasts 0.68 s
+      if (this.wasGrounded || this.wasSliding) f.play('jump', 0.06, true, 0.6);
+      f.setSpeed(1);
+    } else if (this.stumbleTime > 0) {
+      // keep the stumble playing
+    } else {
+      f.play('run', 0.15);
+      f.setSpeed(Math.max(0.6, speed * 0.085));
+    }
+    this.wasGrounded = m.grounded;
+    this.wasSliding = m.sliding;
+    f.update(dt);
+    if (this.flash > 0) this.flash = Math.max(0, this.flash - dt);
+    const flashing = this.flash > 0 && Math.floor(this.flash * 20) % 2 === 0;
+    if (!f.material.emissiveMap) {
+      f.material.emissive.set(flashing ? this.flashColor : '#000000');
+      f.material.emissiveIntensity = flashing ? 0.6 : 0;
+    } else {
+      f.material.emissiveIntensity = flashing ? 4 : 1.5;
+    }
   }
 }

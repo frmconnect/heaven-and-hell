@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 
 /**
  * Animated low-poly human (Quaternius "Animated Man", CC0 — see ASSETS.md), shared by the runner and the Devil.
@@ -48,6 +49,59 @@ export function paletteTexture(p: Palette): THREE.CanvasTexture {
 
 let human: Promise<GLTF | null> | null = null;
 
+/** The realistic runners (Mixamo, Decisions log #43). */
+export const RUNNERS = {
+  female: { id: 'maria', name: 'Maria' },
+  male: { id: 'ely', name: 'Ely' },
+} as const;
+export type RunnerGender = keyof typeof RUNNERS;
+
+export interface TexturedCharacter {
+  gltf: GLTF;
+  materials: Map<string, THREE.MeshStandardMaterial>;
+}
+
+const runners = new Map<string, Promise<TexturedCharacter | null>>();
+
+/** Load a realistic runner (mesh, animations and textures). Null if it can't load. */
+export function loadRunner(id: string): Promise<TexturedCharacter | null> {
+  let p = runners.get(id);
+  if (!p) {
+    const base = `${(import.meta.env?.BASE_URL as string | undefined) ?? './'}models/${id}/`;
+    p = (async () => {
+      const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+      const [gltf, slots] = await Promise.all([loader.loadAsync(`${base}${id}.glb`), fetch(`${base}materials.json`).then((r) => r.json())]);
+      const tl = new THREE.TextureLoader();
+      const tex = (f: string | null | undefined, color = false) => {
+        if (!f) return null;
+        const t = tl.load(base + f);
+        if (color) t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      };
+      const materials = new Map<string, THREE.MeshStandardMaterial>();
+      for (const [name, s] of Object.entries(slots as Record<string, Record<string, string | null>>)) {
+        const m = new THREE.MeshStandardMaterial({ name, roughness: 1, metalness: 0.15 });
+        m.map = tex(s.map, true);
+        m.normalMap = tex(s.normalMap);
+        m.roughnessMap = tex(s.roughnessMap);
+        const glow = tex(s.emissiveMap, true);
+        if (glow) {
+          m.emissiveMap = glow;
+          m.emissive.set('#ffffff');
+          m.emissiveIntensity = 1.5;
+        }
+        materials.set(name, m);
+      }
+      return { gltf, materials };
+    })().catch((e) => {
+      console.warn(`Runner ${id} could not load; using the simple runner.`, e);
+      return null;
+    });
+    runners.set(id, p);
+  }
+  return p;
+}
+
 /** Load the shared character file once. Resolves to null if it can't load (the game keeps its simple shapes). */
 export function loadHuman(): Promise<GLTF | null> {
   if (!human) {
@@ -70,16 +124,22 @@ export class HumanFigure {
   private bones = new Map<string, THREE.Object3D>();
   private tmp = new THREE.Vector3();
 
-  constructor(gltf: GLTF, height: number, palette: Palette) {
+  constructor(gltf: GLTF, height: number, look: Palette | Map<string, THREE.MeshStandardMaterial>) {
     const model = cloneSkinned(gltf.scene);
-    this.material = new THREE.MeshStandardMaterial({ map: paletteTexture(palette), roughness: 0.85, flatShading: true });
+    const textured = look instanceof Map;
+    this.material = textured ? [...look.values()][0] : new THREE.MeshStandardMaterial({ map: paletteTexture(look), roughness: 0.85, flatShading: true });
     model.traverse((o) => {
       if ((o as THREE.Mesh).isMesh) {
         const m = o as THREE.Mesh;
-        m.material = this.material;
+        const name = (m.material as THREE.Material).name;
+        m.material = textured ? (look.get(name) ?? this.material) : this.material;
         m.frustumCulled = false; // skinned meshes move outside their resting box
       }
-      if ((o as THREE.Bone).isBone) this.bones.set(o.name, o);
+      // Mixamo bones are called "mixamorigHead"; store them under the plain name too
+      if ((o as THREE.Bone).isBone) {
+        this.bones.set(o.name, o);
+        this.bones.set(o.name.replace(/^mixamorig:?/, ''), o);
+      }
     });
     // normalise size from the skeleton (head top to toes): the skinned mesh's own box is in other units
     const span = () => {

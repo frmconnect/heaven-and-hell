@@ -7,6 +7,7 @@ export interface SettingsActions {
   onGraphics: () => void; // graphics quality changed
   onDeleteOnline: () => Promise<boolean>; // delete online leaderboard data
   onResetProgress: () => void; // start the game over
+  onRunner: () => void; // the player switched between Maria and Ely
   onBackupNow: () => Promise<boolean>; // cloud save (Decisions log #42)
   onRestore: (code: string) => Promise<'ok' | 'badcode' | 'notfound' | 'offline'>;
 }
@@ -77,6 +78,7 @@ export class SettingsScreen {
           <div class="set-row"><span>World sounds (lava, wind…)</span>${toggle('amb', !!d.ambienceOn)}</div>
           <div class="set-row music"><span>Music</span><small>Original songs are coming: choose a song or shuffle, here.</small></div>
           <div class="set-label">Game</div>
+          <div class="set-row"><span>Your runner<small>Maria or Ely</small></span><div class="runner-pick"><button class="toggle ${d.runner !== 'male' ? 'on' : ''}" data-runner="female">MARIA</button><button class="toggle ${d.runner === 'male' ? 'on' : ''}" data-runner="male">ELY</button></div></div>
           <div class="set-row"><span>Vibration</span>${toggle('vib', !!d.vibrateOn)}</div>
           <div class="set-row"><span>Graphics<small>Low runs smoother on older phones</small></span>${toggle('gfx', !!d.graphics, 'HIGH', 'LOW')}</div>
           <button class="set-row link" data-howto><span>How to play</span><b>›</b></button>
@@ -113,6 +115,16 @@ export class SettingsScreen {
         } else if (k === 'gfx') d.graphics = d.graphics ? 0 : 1;
         this.persist();
         if (k === 'gfx') this.actions.onGraphics();
+        this.render();
+      }),
+    );
+    this.el.querySelectorAll<HTMLElement>('[data-runner]').forEach((b) =>
+      b.addEventListener('click', () => {
+        if (d.runner === b.dataset.runner) return;
+        d.runner = b.dataset.runner === 'male' ? 'male' : 'female';
+        d.runnerChosen = 1;
+        this.persist();
+        this.actions.onRunner();
         this.render();
       }),
     );
@@ -253,7 +265,7 @@ export class SettingsScreen {
           <h3>Development</h3>
           <p>Built with Claude (Anthropic). 3D graphics with three.js. Sound effects synthesized for this game.</p>
           <h3>3D characters</h3>
-          <p>Runner and Devil based on "Animated Man" by Quaternius (CC0).</p>
+          <p>Runners Maria and Ely, and their animations, from Mixamo (Adobe). Devil based on "Animated Man" by Quaternius (CC0).</p>
           <h3>Thank you</h3>
           <p>To every tester and every player. Run free.</p>
         </div>

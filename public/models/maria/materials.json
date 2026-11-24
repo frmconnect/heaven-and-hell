@@ -1,0 +1,8 @@
+{
+  "maria_M1": {
+    "map": "maria_M1_color.jpg",
+    "normalMap": "maria_M1_normal.jpg",
+    "emissiveMap": null,
+    "roughnessMap": "maria_M1_rough.jpg"
+  }
+}

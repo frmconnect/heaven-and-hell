@@ -65,6 +65,9 @@ export interface SaveState {
   cloudCode: string; // recovery code ('' = not made yet)
   cloudAt: number; // when the last backup reached the server (ms since 1970), 0 = never
   cloudTold: number; // 1 = the player was told about their code
+  // Realistic runner (Decisions log #43)
+  runner: string; // 'female' (Maria) or 'male' (Ely)
+  runnerChosen: number; // 1 = the player picked (or was asked)
 }
 
 export interface KeyValueStore {
@@ -84,13 +87,13 @@ export const defaultSave = (): SaveState => ({
   playerId: '', playerName: '', pendScore: 0, pendDistance: 0, pendCoins: 0, pendDuration: 0,
   sfxOn: 1, sfxVolume: 0.8, ambienceOn: 1, vibrateOn: 1, graphics: 1,
   chDay: 0, chProg: [0, 0, 0], chDone: 0, chBonus: 0, mLevel: 1, mProg: [0, 0, 0],
-  cloudCode: '', cloudAt: 0, cloudTold: 0,
+  cloudCode: '', cloudAt: 0, cloudTold: 0, runner: 'female', runnerChosen: 0,
 });
 
 /** Settings and identity survive a progress reset; everything else starts over. */
-const KEEP_ON_RESET = ['sfxOn', 'sfxVolume', 'ambienceOn', 'vibrateOn', 'graphics', 'playerId', 'playerName', 'testerGift', 'walletReady', 'cloudCode', 'cloudAt', 'cloudTold'] as const;
+const KEEP_ON_RESET = ['sfxOn', 'sfxVolume', 'ambienceOn', 'vibrateOn', 'graphics', 'playerId', 'playerName', 'testerGift', 'walletReady', 'cloudCode', 'cloudAt', 'cloudTold', 'runner', 'runnerChosen'] as const;
 
-const STRING_KEYS = ['outfit', 'wings', 'trail', 'playerId', 'playerName', 'cloudCode'] as const;
+const STRING_KEYS = ['outfit', 'wings', 'trail', 'playerId', 'playerName', 'cloudCode', 'runner'] as const;
 
 /** Read a save (from this phone or from a cloud backup), keeping only valid values. */
 export function parseSave(parsed: Record<string, any>): SaveState {
